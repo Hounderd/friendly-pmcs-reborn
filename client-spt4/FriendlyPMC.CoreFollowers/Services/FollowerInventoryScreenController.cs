@@ -124,13 +124,21 @@ public sealed class FollowerInventoryScreenController
         }
         else if (string.Equals(normalizedSourceOwner, "player", StringComparison.OrdinalIgnoreCase))
         {
-            var selectedTarget = targetResolver.ResolveTargets(presenter.CurrentState, normalizedSourceOwner, itemId)
-                .FirstOrDefault(target => string.Equals(target.Key, normalizedTargetKey, StringComparison.Ordinal));
+            var resolvedTargets = targetResolver.ResolveTargets(presenter.CurrentState, normalizedSourceOwner, itemId);
+            var selectedTarget = string.IsNullOrWhiteSpace(normalizedTargetKey)
+                ? resolvedTargets.FirstOrDefault()
+                : resolvedTargets.FirstOrDefault(target => string.Equals(target.Key, normalizedTargetKey, StringComparison.Ordinal));
             if (selectedTarget is null)
             {
                 logInfo?.Invoke(
                     $"Follower inventory transfer rejected before move: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={normalizedTargetKey}, error=No follower target is selected.");
                 return new FollowerInventoryMoveResultDto(false, "No follower target is selected.");
+            }
+
+            if (string.IsNullOrWhiteSpace(normalizedTargetKey))
+            {
+                logInfo?.Invoke(
+                    $"Follower inventory transfer resolved generic drop target: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={selectedTarget.Key}");
             }
 
             result = await presenter.MoveAsync(
