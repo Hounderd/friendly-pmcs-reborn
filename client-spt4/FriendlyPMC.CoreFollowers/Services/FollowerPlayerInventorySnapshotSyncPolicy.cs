@@ -17,20 +17,29 @@ internal static class FollowerPlayerInventorySnapshotSyncPolicy
             .Where(item => !string.IsNullOrWhiteSpace(item.ParentId))
             .GroupBy(item => item.ParentId!, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
-        var itemsById = owner.Items.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        var itemsById = owner.Items
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .GroupBy(item => item.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         if (!itemsById.TryGetValue(owner.RootId, out var rootItem))
         {
             return Array.Empty<FollowerInventoryItemViewDto>();
         }
 
-        var collected = new List<FollowerInventoryItemViewDto> { rootItem };
-        var seen = new HashSet<string>(StringComparer.Ordinal) { rootItem.Id };
+        var collected = new List<FollowerInventoryItemViewDto>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         var queue = new Queue<string>();
         queue.Enqueue(rootItem.Id);
 
         while (queue.Count > 0)
         {
             var currentId = queue.Dequeue();
+            if (!itemsById.TryGetValue(currentId, out var currentItem) || !seen.Add(currentId))
+            {
+                continue;
+            }
+
+            collected.Add(currentItem);
             if (!itemsByParent.TryGetValue(currentId, out var children))
             {
                 continue;
@@ -38,12 +47,11 @@ internal static class FollowerPlayerInventorySnapshotSyncPolicy
 
             foreach (var child in children.OrderBy(item => item.Id, StringComparer.Ordinal))
             {
-                if (!seen.Add(child.Id))
+                if (string.IsNullOrWhiteSpace(child.Id) || seen.Contains(child.Id))
                 {
                     continue;
                 }
 
-                collected.Add(child);
                 queue.Enqueue(child.Id);
             }
         }
