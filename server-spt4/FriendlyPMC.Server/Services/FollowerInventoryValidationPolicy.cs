@@ -388,9 +388,9 @@ public static class FollowerInventoryValidationPolicy
             return false;
         }
 
-        var rotation = element.TryGetProperty("r", out var rotationElement)
+        var rotation = TryGetPropertyIgnoreCase(element, "r", out var rotationElement)
             ? rotationElement.GetString()
-            : element.TryGetProperty("rotation", out rotationElement)
+            : TryGetPropertyIgnoreCase(element, "rotation", out rotationElement)
                 ? rotationElement.GetString()
                 : null;
         placement = new GridPlacement(x, y, string.Equals(rotation, "Vertical", StringComparison.OrdinalIgnoreCase));
@@ -400,7 +400,7 @@ public static class FollowerInventoryValidationPolicy
     private static bool TryGetInt(JsonElement element, string propertyName, out int value)
     {
         value = 0;
-        if (!element.TryGetProperty(propertyName, out var property))
+        if (!TryGetPropertyIgnoreCase(element, propertyName, out var property))
         {
             return false;
         }
@@ -415,6 +415,26 @@ public static class FollowerInventoryValidationPolicy
             return true;
         }
 
+        return false;
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement property)
+    {
+        if (element.TryGetProperty(propertyName, out property))
+        {
+            return true;
+        }
+
+        foreach (var candidate in element.EnumerateObject())
+        {
+            if (string.Equals(candidate.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                property = candidate.Value;
+                return true;
+            }
+        }
+
+        property = default;
         return false;
     }
 

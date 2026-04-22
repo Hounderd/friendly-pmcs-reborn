@@ -70,19 +70,9 @@ public sealed class FollowerInventoryTargetResolver : IFollowerInventoryTargetRe
         placementResolver ??= ResolvePlacementProfile;
         var placementProfile = placementResolver(playerItem);
         var targets = new List<FollowerInventoryTargetViewModel>();
-        var occupiedRootSlots = state.Follower.Items
-            .Where(item => string.Equals(item.ParentId, state.Follower.RootId, StringComparison.Ordinal))
-            .Select(item => item.SlotId)
-            .Where(slotId => !string.IsNullOrWhiteSpace(slotId))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var equipSlot in placementProfile.EquipSlots.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (occupiedRootSlots.Contains(equipSlot))
-            {
-                continue;
-            }
-
             targets.Add(new FollowerInventoryTargetViewModel(
                 $"equip:{equipSlot}",
                 $"Equip: {FollowerInventorySlotLabelFormatter.Format(equipSlot)}",
