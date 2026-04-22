@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <FriendlyPmcVersion>0.1.125</FriendlyPmcVersion>
+    <FriendlyPmcVersion>0.1.126</FriendlyPmcVersion>
     <FriendlyPmcBuildVersionGeneratedFile>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\FriendlyPmcBuildVersion.g.cs</FriendlyPmcBuildVersionGeneratedFile>
   </PropertyGroup>
 

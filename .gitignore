@@ -13,7 +13,6 @@ client-spt4/Directory.Build.props
 .vscode/
 .idea/
 .config/
-.superpowers/
 .tmp/
 
 # Local research and scratch surfaces
