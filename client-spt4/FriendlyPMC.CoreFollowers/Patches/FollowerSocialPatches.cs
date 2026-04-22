@@ -294,10 +294,10 @@ internal static class FollowerSocialProfileScreenDiagnostics
     private static readonly FieldInfo? ProfileAccountIdField =
         AccessTools.Field(AccessTools.TypeByName("GClass1416")!, "AccountId");
 
-    public static void LogScreenShow(object? controller)
+    public static void LogScreenShow(object? controller, object? screen = null)
     {
         var accountId = ReadAccountId(OtherPlayerProfileScreenControllerProfileField?.GetValue(controller));
-        FollowerProfileScreenTracker.SetVisibleProfile(accountId);
+        FollowerProfileScreenTracker.SetVisibleProfile(accountId, screen);
         FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
             $"Follower profile screen show: accountId={accountId}");
     }
@@ -313,7 +313,7 @@ internal static class FollowerSocialProfileScreenDiagnostics
     public static void LogScreenVisualShow(object? screen)
     {
         var accountId = ReadAccountId(OtherPlayerProfileScreenProfileField?.GetValue(screen));
-        FollowerProfileScreenTracker.SetVisibleProfile(accountId);
+        FollowerProfileScreenTracker.SetVisibleProfile(accountId, screen);
         FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
             $"Follower profile screen visual show: accountId={accountId}");
     }
@@ -633,7 +633,7 @@ internal sealed class OtherPlayerProfileScreenShowPatch : ModulePatch
     [PatchPostfix]
     private static void PatchPostfix(object __instance, object controller)
     {
-        FollowerSocialProfileScreenDiagnostics.LogScreenShow(controller);
+        FollowerSocialProfileScreenDiagnostics.LogScreenShow(controller, __instance);
         FollowerSocialProfileScreenDiagnostics.LogScreenVisualShow(__instance);
         FollowerProfileActionInjector.TryInjectOpenInventoryAction(__instance, controller);
     }
