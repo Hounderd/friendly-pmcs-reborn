@@ -56,6 +56,8 @@ public sealed class FollowerInventoryService(
         }
 
         var followerItems = CloneItems(followerInventory.Items.Select(FollowerProfileFactory.CreateInventoryItem));
+        NormalizeAllIndexedSiblingLocations(playerItems);
+        NormalizeAllIndexedSiblingLocations(followerItems);
         var sourceIsPlayer = string.Equals(request.SourceOwner, "player", StringComparison.OrdinalIgnoreCase);
         var sourceItems = sourceIsPlayer ? playerItems : followerItems;
         var targetItems = sourceIsPlayer ? followerItems : playerItems;
@@ -127,8 +129,10 @@ public sealed class FollowerInventoryService(
         movedRoot.SlotId = effectiveRequest.ToContainer;
         movedRoot.Location = DeserializeLocation(effectiveRequest.ToLocationJson);
         targetItems.AddRange(moveSubtree);
+        NormalizeAllIndexedSiblingLocations(playerItems);
 
         var updatedFollowerItems = sourceIsPlayer ? targetItems : sourceItems;
+        NormalizeAllIndexedSiblingLocations(updatedFollowerItems);
         var updatedFollowerSnapshot = followerProfile with
         {
             Inventory = new FollowerInventorySnapshot(
@@ -203,27 +207,65 @@ public sealed class FollowerInventoryService(
                 throw new InvalidOperationException("Follower inventory views are unavailable because ProfileHelper is not registered.");
             }
 
-            var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
-            diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=start");
-            var followerProfile = (await store.LoadProfilesAsync(resolvedSessionId))
-                .FirstOrDefault(profile => string.Equals(profile.Aid, followerAid, StringComparison.Ordinal));
-            if (followerProfile is null)
-            {
-                diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=follower-miss");
-                return null;
-            }
+        var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
+        diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=start");
+        var profiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var profileIndex = profiles.FindIndex(profile => string.Equals(profile.Aid, followerAid, StringComparison.Ordinal));
+        var followerProfile = profileIndex >= 0 ? profiles[profileIndex] : null;
+        if (followerProfile is null)
+        {
+            diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=follower-miss");
+            return null;
+        }
 
             var playerProfile = profileHelper.GetPmcProfile(new MongoId(sessionId));
-            if (playerProfile is null)
+        if (playerProfile is null)
+        {
+            diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=player-miss");
+            return null;
+        }
+
+        if (playerProfile.Inventory?.Items is null)
+        {
+            diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=player-items-miss");
+            return null;
+        }
+
+        var playerInventoryChanged = NormalizeAllIndexedSiblingLocations(playerProfile.Inventory.Items);
+        var followerInventory = followerProfile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(followerProfile.Equipment);
+        var followerInventoryItems = CloneItems(followerInventory?.Items.Select(FollowerProfileFactory.CreateInventoryItem) ?? []);
+        var followerInventoryChanged = NormalizeAllIndexedSiblingLocations(followerInventoryItems);
+        if (followerInventoryChanged)
+        {
+            followerProfile = followerProfile with
             {
-                diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=player-miss");
-                return null;
+                Inventory = new FollowerInventorySnapshot(
+                    followerInventory?.EquipmentId ?? string.Empty,
+                    followerInventoryItems.Select(CreateSnapshotItem).ToArray()),
+            };
+            profiles[profileIndex] = FollowerInventoryMigrationPolicy.Upgrade(followerProfile);
+        }
+
+        if (playerInventoryChanged || followerInventoryChanged)
+        {
+            if (followerInventoryChanged)
+            {
+                await store.SaveProfilesAsync(resolvedSessionId, profiles);
             }
 
-            var response = BuildInventoryView(playerProfile, followerProfile);
+            if (saveServer is not null)
+            {
+                await saveServer.SaveProfileAsync(new MongoId(sessionId));
+            }
+
             diagnosticsLog?.Append(
-                $"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=success playerItems={response.Player?.Items.Count ?? 0} followerItems={response.Follower?.Items.Count ?? 0} playerRoot={response.Player?.RootId ?? "<blank>"} followerRoot={response.Follower?.RootId ?? "<blank>"}");
-            return response;
+                $"inventory-heal session={sessionId} resolved={resolvedSessionId} follower={followerAid} playerChanged={playerInventoryChanged} followerChanged={followerInventoryChanged}");
+        }
+
+        var response = BuildInventoryView(playerProfile, followerProfile);
+        diagnosticsLog?.Append(
+            $"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=success playerItems={response.Player?.Items.Count ?? 0} followerItems={response.Follower?.Items.Count ?? 0} playerRoot={response.Player?.RootId ?? "<blank>"} followerRoot={response.Follower?.RootId ?? "<blank>"}");
+        return response;
         }
         catch (Exception ex)
         {
@@ -519,6 +561,46 @@ public sealed class FollowerInventoryService(
         }
     }
 
+    private static bool NormalizeAllIndexedSiblingLocations(List<Item> items)
+    {
+        var changed = false;
+        var siblingGroups = items
+            .Where(item => !string.IsNullOrWhiteSpace(item.ParentId) && !string.IsNullOrWhiteSpace(item.SlotId))
+            .GroupBy(item => $"{item.ParentId}\n{item.SlotId}", StringComparer.Ordinal);
+        foreach (var siblingGroup in siblingGroups)
+        {
+            var entries = siblingGroup
+                .Select((item, order) => new
+                {
+                    Item = item,
+                    Order = order,
+                    Index = TryReadIndexedLocation(item.Location),
+                    HasStructuredLocation = HasStructuredLocation(item.Location),
+                })
+                .ToArray();
+            if (entries.Length < 2 || entries.Any(entry => entry.HasStructuredLocation))
+            {
+                continue;
+            }
+
+            var orderedEntries = entries
+                .OrderBy(entry => entry.Index ?? int.MaxValue)
+                .ThenBy(entry => entry.Order)
+                .ToArray();
+            for (var index = 0; index < orderedEntries.Length; index++)
+            {
+                if (orderedEntries[index].Index != index)
+                {
+                    changed = true;
+                }
+
+                orderedEntries[index].Item.Location = index;
+            }
+        }
+
+        return changed;
+    }
+
     private static int? TryReadIndexedLocation(object? location)
     {
         return location switch
@@ -528,6 +610,15 @@ public sealed class FollowerInventoryService(
             long value => checked((int)value),
             JsonElement jsonElement when jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetInt32(out var value) => value,
             _ => null,
+        };
+    }
+
+    private static bool HasStructuredLocation(object? location)
+    {
+        return location switch
+        {
+            JsonElement jsonElement when jsonElement.ValueKind is JsonValueKind.Object or JsonValueKind.Array => true,
+            _ => false,
         };
     }
 }
