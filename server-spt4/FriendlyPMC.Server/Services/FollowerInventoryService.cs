@@ -33,6 +33,10 @@ public sealed class FollowerInventoryService(
         IReadOnlyList<Item> PlayerItems,
         FollowerProfileSnapshot FollowerProfile);
 
+    private sealed record EquippedItemSwapPlan(
+        IReadOnlyList<Item> Subtree,
+        FollowerInventoryMoveRequest Request);
+
     public static PreviewResult PreviewMove(
         PmcData playerProfile,
         FollowerProfileSnapshot followerProfile,
@@ -81,10 +85,43 @@ public sealed class FollowerInventoryService(
             return new PreviewResult(false, validationError, playerItems, followerProfile);
         }
 
+        string? swapError = null;
+        var playerStashRootId = ResolvePlayerStashRootId(playerProfile);
+        var playerStashContainerKey = ResolvePlayerStashContainerKey(playerItems, itemTemplates, playerStashRootId);
+        var equippedItemSwapPlans = sourceIsPlayer
+            ? PlanEquippedItemSwap(
+                playerItems,
+                targetItems,
+                playerStashRootId,
+                playerStashContainerKey,
+                followerInventory.EquipmentId,
+                itemTemplates,
+                request,
+                sourceRoot,
+                moveSubtree,
+                effectiveRequest,
+                out swapError)
+            : new List<EquippedItemSwapPlan>();
+        if (!string.IsNullOrWhiteSpace(swapError))
+        {
+            return new PreviewResult(false, swapError, playerItems, followerProfile);
+        }
+
         var originalParentId = sourceRoot.ParentId;
         var originalSlotId = sourceRoot.SlotId;
         sourceItems.RemoveAll(item => moveSubtree.Any(child => child.Id == item.Id));
         NormalizeIndexedSiblingLocations(sourceItems, originalParentId, originalSlotId);
+
+        foreach (var swapPlan in equippedItemSwapPlans)
+        {
+            targetItems.RemoveAll(item => swapPlan.Subtree.Any(child => child.Id == item.Id));
+            var swappedRoot = swapPlan.Subtree[0];
+            swappedRoot.ParentId = swapPlan.Request.ToId;
+            swappedRoot.SlotId = swapPlan.Request.ToContainer;
+            swappedRoot.Location = DeserializeLocation(swapPlan.Request.ToLocationJson);
+            playerItems.AddRange(swapPlan.Subtree);
+        }
+
         var movedRoot = moveSubtree[0];
         movedRoot.ParentId = effectiveRequest.ToId;
         movedRoot.SlotId = effectiveRequest.ToContainer;
@@ -328,6 +365,132 @@ public sealed class FollowerInventoryService(
     private static bool MatchesId(MongoId value, string requestedId)
     {
         return string.Equals(value.ToString(), requestedId, StringComparison.Ordinal);
+    }
+
+    private static List<EquippedItemSwapPlan> PlanEquippedItemSwap(
+        List<Item> playerItems,
+        List<Item> followerItems,
+        string playerStashRootId,
+        string playerStashContainerKey,
+        string followerEquipmentRootId,
+        IReadOnlyDictionary<string, TemplateItem> itemTemplates,
+        FollowerInventoryMoveRequest originalRequest,
+        Item sourceRoot,
+        List<Item> moveSubtree,
+        FollowerInventoryMoveRequest effectiveRequest,
+        out string? errorMessage)
+    {
+        errorMessage = null;
+        if (!string.Equals(effectiveRequest.ToId, followerEquipmentRootId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(effectiveRequest.ToContainer)
+            || string.IsNullOrWhiteSpace(playerStashRootId)
+            || string.IsNullOrWhiteSpace(playerStashContainerKey))
+        {
+            return [];
+        }
+
+        var occupiedRoots = followerItems
+            .Where(item =>
+                string.Equals(item.ParentId, followerEquipmentRootId, StringComparison.Ordinal)
+                && string.Equals(item.SlotId, effectiveRequest.ToContainer, StringComparison.Ordinal))
+            .ToArray();
+        if (occupiedRoots.Length == 0)
+        {
+            return [];
+        }
+
+        var simulatedPlayerItems = CloneItems(playerItems);
+        simulatedPlayerItems.RemoveAll(item => moveSubtree.Any(child => child.Id == item.Id));
+        NormalizeIndexedSiblingLocations(simulatedPlayerItems, sourceRoot.ParentId, sourceRoot.SlotId);
+
+        var plans = new List<EquippedItemSwapPlan>(occupiedRoots.Length);
+        foreach (var occupiedRoot in occupiedRoots)
+        {
+            var swapRequest = new FollowerInventoryMoveRequest(
+                originalRequest.FollowerAid,
+                "follower",
+                occupiedRoot.Id.ToString(),
+                playerStashRootId,
+                playerStashContainerKey,
+                null);
+            var resolvedSwapRequest = FollowerInventoryValidationPolicy.ResolveAutoPlacement(
+                simulatedPlayerItems,
+                followerEquipmentRootId,
+                itemTemplates,
+                swapRequest,
+                occupiedRoot,
+                targetIsFollower: false);
+            var swapValidationError = FollowerInventoryValidationPolicy.ValidateTarget(
+                simulatedPlayerItems,
+                followerEquipmentRootId,
+                itemTemplates,
+                resolvedSwapRequest,
+                occupiedRoot,
+                targetIsFollower: false);
+            if (swapValidationError is not null)
+            {
+                errorMessage = "No space available to swap equipped item.";
+                return [];
+            }
+
+            var subtree = CollectSubtree(followerItems, occupiedRoot.Id.ToString());
+            var simulatedSubtree = CloneItems(subtree);
+            var simulatedRoot = simulatedSubtree[0];
+            simulatedRoot.ParentId = resolvedSwapRequest.ToId;
+            simulatedRoot.SlotId = resolvedSwapRequest.ToContainer;
+            simulatedRoot.Location = DeserializeLocation(resolvedSwapRequest.ToLocationJson);
+            simulatedPlayerItems.AddRange(simulatedSubtree);
+
+            plans.Add(new EquippedItemSwapPlan(subtree, resolvedSwapRequest));
+        }
+
+        return plans;
+    }
+
+    private static string ResolvePlayerStashRootId(PmcData playerProfile)
+    {
+        return playerProfile.Inventory?.Stash?.ToString()
+            ?? playerProfile.Inventory?.Equipment?.ToString()
+            ?? string.Empty;
+    }
+
+    private static string ResolvePlayerStashContainerKey(
+        IReadOnlyList<Item> playerItems,
+        IReadOnlyDictionary<string, TemplateItem> itemTemplates,
+        string playerStashRootId)
+    {
+        if (string.IsNullOrWhiteSpace(playerStashRootId))
+        {
+            return string.Empty;
+        }
+
+        var stashRoot = playerItems.FirstOrDefault(item => string.Equals(item.Id.ToString(), playerStashRootId, StringComparison.Ordinal));
+        if (stashRoot is null || !itemTemplates.TryGetValue(stashRoot.Template.ToString(), out var stashTemplate))
+        {
+            return string.Empty;
+        }
+
+        foreach (var preferredKey in new[] { "hideout", "main" })
+        {
+            if (TryResolveGridKey(stashTemplate, preferredKey, out var resolvedKey))
+            {
+                return resolvedKey;
+            }
+        }
+
+        return stashTemplate.Properties?.Grids?
+            .Select(grid => !string.IsNullOrWhiteSpace(grid.Name) ? grid.Name : grid.Id)
+            .FirstOrDefault(key => !string.IsNullOrWhiteSpace(key))
+            ?? string.Empty;
+    }
+
+    private static bool TryResolveGridKey(TemplateItem template, string requestedKey, out string resolvedKey)
+    {
+        resolvedKey = template.Properties?.Grids?
+            .Select(grid => !string.IsNullOrWhiteSpace(grid.Name) ? grid.Name : grid.Id)
+            .FirstOrDefault(key => string.Equals(key, requestedKey, StringComparison.OrdinalIgnoreCase))
+            ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(resolvedKey);
     }
 
     private static void NormalizeIndexedSiblingLocations(List<Item> items, string? parentId, string? slotId)
