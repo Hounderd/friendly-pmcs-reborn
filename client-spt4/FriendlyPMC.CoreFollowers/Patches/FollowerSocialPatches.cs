@@ -502,6 +502,7 @@ internal sealed class SocialNetworkClassInitPatch : ModulePatch
     private static void PatchPostfix(SocialNetworkClass __instance, IChatInteractions session, InventoryController inventoryController, string matchingVersion)
     {
         FollowerSocialFriendRefresh.Bind(__instance, session);
+        FollowerPlayerInventoryRuntime.Bind(inventoryController);
     }
 }
 

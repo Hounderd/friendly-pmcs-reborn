@@ -9,6 +9,7 @@ public sealed class FollowerInventoryScreenController
     private readonly IFollowerInventoryRuntimeViewFactory runtimeViewFactory;
     private readonly IFollowerInventoryTargetResolver targetResolver;
     private readonly IFollowerProfileScreenRefresher profileScreenRefresher;
+    private readonly IFollowerPlayerInventoryRefresher playerInventoryRefresher;
     private readonly Action<string>? logInfo;
     private readonly Action<string, Exception>? logError;
     private IFollowerInventoryRuntimeView? activeRuntimeView;
@@ -21,6 +22,7 @@ public sealed class FollowerInventoryScreenController
         IFollowerInventoryRuntimeViewFactory? runtimeViewFactory = null,
         IFollowerInventoryTargetResolver? targetResolver = null,
         IFollowerProfileScreenRefresher? profileScreenRefresher = null,
+        IFollowerPlayerInventoryRefresher? playerInventoryRefresher = null,
         Action<string>? logInfo = null,
         Action<string, Exception>? logError = null)
     {
@@ -28,6 +30,7 @@ public sealed class FollowerInventoryScreenController
         this.runtimeViewFactory = runtimeViewFactory ?? new FollowerInventoryRuntimeViewFactory();
         this.targetResolver = targetResolver ?? new FollowerInventoryTargetResolver();
         this.profileScreenRefresher = profileScreenRefresher ?? new FollowerProfileScreenRefresher();
+        this.playerInventoryRefresher = playerInventoryRefresher ?? new FollowerPlayerInventoryRefresher();
         this.logInfo = logInfo;
         this.logError = logError;
     }
@@ -168,6 +171,7 @@ public sealed class FollowerInventoryScreenController
             logInfo?.Invoke(
                 $"Follower inventory transfer completed: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}");
             ShowState(null, presenter.CurrentState);
+            await TryRefreshLivePlayerInventoryAsync(presenter.CurrentState.Player);
             await TryRefreshVisibleProfileAsync(presenter.CurrentState.FollowerAid);
         }
         else
@@ -204,6 +208,18 @@ public sealed class FollowerInventoryScreenController
         catch (Exception ex)
         {
             logError?.Invoke($"Failed to refresh visible follower profile after inventory move: aid={followerAid}", ex);
+        }
+    }
+
+    private async Task TryRefreshLivePlayerInventoryAsync(FollowerInventoryOwnerViewDto? playerInventory)
+    {
+        try
+        {
+            await playerInventoryRefresher.RefreshAfterInventoryMoveAsync(playerInventory);
+        }
+        catch (Exception ex)
+        {
+            logError?.Invoke("Failed to refresh live player inventory after follower move.", ex);
         }
     }
 
