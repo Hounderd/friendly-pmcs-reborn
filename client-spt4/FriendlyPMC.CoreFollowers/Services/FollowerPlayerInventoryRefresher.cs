@@ -209,15 +209,67 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
             return null;
         }
 
-        AccessTools.Field(inventoryDescriptorType, "Gclass1390_0")?.SetValue(descriptor, flatItems);
-        AccessTools.Field(inventoryDescriptorType, "MongoID_0")?.SetValue(descriptor, currentInventory.Equipment.Id);
-        AccessTools.Field(inventoryDescriptorType, "Nullable_0")?.SetValue(descriptor, currentInventory.Stash?.Id);
-        AccessTools.Field(inventoryDescriptorType, "Nullable_1")?.SetValue(descriptor, currentInventory.QuestRaidItems?.Id);
-        AccessTools.Field(inventoryDescriptorType, "Nullable_2")?.SetValue(descriptor, currentInventory.QuestStashItems?.Id);
-        AccessTools.Field(inventoryDescriptorType, "Nullable_3")?.SetValue(descriptor, currentInventory.SortingTable?.Id);
-        AccessTools.Field(inventoryDescriptorType, "Nullable_4")?.SetValue(descriptor, currentInventory.HideoutCustomizationStash?.Id);
+        if (!TryPopulateDescriptorRootIds(inventoryDescriptorType, descriptor, currentInventory))
+        {
+            return null;
+        }
 
+        AccessTools.Field(inventoryDescriptorType, "Gclass1390_0")?.SetValue(descriptor, flatItems);
         return AccessTools.Method(inventoryDescriptorType, "ToInventory")?.Invoke(descriptor, null) as Inventory;
+    }
+
+    private static bool TryPopulateDescriptorRootIds(Type inventoryDescriptorType, object descriptor, Inventory currentInventory)
+    {
+        if (!TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "MongoID_0", currentInventory.Equipment?.Id, isRequired: true))
+        {
+            return false;
+        }
+
+        return TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "Nullable_0", currentInventory.Stash?.Id, isRequired: false)
+            && TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "Nullable_1", currentInventory.QuestRaidItems?.Id, isRequired: false)
+            && TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "Nullable_2", currentInventory.QuestStashItems?.Id, isRequired: false)
+            && TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "Nullable_3", currentInventory.SortingTable?.Id, isRequired: false)
+            && TrySetDescriptorRootId(inventoryDescriptorType, descriptor, "Nullable_4", currentInventory.HideoutCustomizationStash?.Id, isRequired: false);
+    }
+
+    private static bool TrySetDescriptorRootId(
+        Type inventoryDescriptorType,
+        object descriptor,
+        string fieldName,
+        string? rawValue,
+        bool isRequired)
+    {
+        var field = AccessTools.Field(inventoryDescriptorType, fieldName);
+        if (field is null)
+        {
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
+                $"Skipped live player inventory refresh after follower move: inventory descriptor field '{fieldName}' was not found.");
+            return false;
+        }
+
+        var normalizedRootId = FollowerPlayerInventoryDescriptorIdPolicy.NormalizeRootId(rawValue);
+        if (normalizedRootId is null)
+        {
+            if (isRequired)
+            {
+                FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
+                    $"Skipped live player inventory refresh after follower move: required descriptor root '{fieldName}' was invalid ('{rawValue ?? "<null>"}').");
+                return false;
+            }
+
+            field.SetValue(descriptor, null);
+            return true;
+        }
+
+        if (!TryParseMongoId(normalizedRootId, out var mongoId))
+        {
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
+                $"Skipped live player inventory refresh after follower move: descriptor root '{fieldName}' could not be parsed ('{normalizedRootId}').");
+            return false;
+        }
+
+        field.SetValue(descriptor, mongoId);
+        return true;
     }
 }
 #else
