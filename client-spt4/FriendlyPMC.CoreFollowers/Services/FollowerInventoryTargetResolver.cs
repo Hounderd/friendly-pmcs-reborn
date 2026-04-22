@@ -95,10 +95,15 @@ public sealed class FollowerInventoryTargetResolver : IFollowerInventoryTargetRe
 
         if (placementProfile.CanStoreInCarryContainers)
         {
-            foreach (var container in state.Follower.Items.Where(item =>
-                         string.Equals(item.ParentId, state.Follower.RootId, StringComparison.Ordinal)
-                         && item.SlotId is not null
-                         && CarryContainerSlots.Contains(item.SlotId, StringComparer.OrdinalIgnoreCase)))
+            foreach (var container in state.Follower.Items
+                         .Where(item =>
+                             string.Equals(item.ParentId, state.Follower.RootId, StringComparison.Ordinal)
+                             && item.SlotId is not null
+                             && CarryContainerSlots.Contains(item.SlotId, StringComparer.OrdinalIgnoreCase))
+                         .OrderBy(item => Array.FindIndex(
+                             CarryContainerSlots,
+                             slot => string.Equals(slot, item.SlotId, StringComparison.OrdinalIgnoreCase)))
+                         .ThenBy(item => item.Id, StringComparer.Ordinal))
             {
                 targets.Add(new FollowerInventoryTargetViewModel(
                     $"store:{container.Id}",

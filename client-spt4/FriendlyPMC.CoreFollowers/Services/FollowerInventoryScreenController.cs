@@ -133,9 +133,13 @@ public sealed class FollowerInventoryScreenController
                 : resolvedTargets.FirstOrDefault(target => string.Equals(target.Key, normalizedTargetKey, StringComparison.Ordinal));
             if (selectedTarget is null)
             {
+                var errorMessage = string.IsNullOrWhiteSpace(normalizedTargetKey)
+                    ? "No follower target is selected."
+                    : DescribeExplicitTargetError(normalizedTargetKey);
                 logInfo?.Invoke(
-                    $"Follower inventory transfer rejected before move: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={normalizedTargetKey}, error=No follower target is selected.");
-                return new FollowerInventoryMoveResultDto(false, "No follower target is selected.");
+                    $"Follower inventory transfer rejected before move: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={normalizedTargetKey}, error={errorMessage}");
+                ShowState(null, presenter.CurrentState with { ErrorMessage = errorMessage, DebugDetails = null });
+                return new FollowerInventoryMoveResultDto(false, errorMessage);
             }
 
             if (string.IsNullOrWhiteSpace(normalizedTargetKey))
@@ -173,6 +177,22 @@ public sealed class FollowerInventoryScreenController
             ShowState(null, presenter.CurrentState);
         }
         return result;
+    }
+
+    private static string DescribeExplicitTargetError(string targetKey)
+    {
+        if (targetKey.StartsWith("equip:", StringComparison.Ordinal))
+        {
+            var slotId = targetKey["equip:".Length..];
+            return $"Item cannot be equipped to {FollowerInventorySlotLabelFormatter.Format(slotId)}.";
+        }
+
+        if (targetKey.StartsWith("store:", StringComparison.Ordinal))
+        {
+            return "Item cannot be stored in that container.";
+        }
+
+        return "No follower target is selected.";
     }
 
     private async Task TryRefreshVisibleProfileAsync(string followerAid)
