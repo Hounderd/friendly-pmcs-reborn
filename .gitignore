@@ -1,0 +1,41 @@
+# Local build configuration
+client-spt4/Directory.Build.props
+
+# Build artifacts
+**/bin/
+**/obj/
+*.user
+*.suo
+*.log
+
+# Dev and editor state
+.vs/
+.vscode/
+.idea/
+.config/
+.superpowers/
+.tmp/
+
+# Local research and scratch surfaces
+docs/
+deploy/
+scratch_*/
+scratch*/
+tools/
+tmp/
+
+# Test projects and temporary validation code
+**/*Tests*/
+**/*.Tests/
+
+# Legacy branches and unpublished surfaces
+client/
+server/
+resources/
+scripts/
+reflect_local.ps1
+reflect_remote.ps1
+
+# OS clutter
+.DS_Store
+Thumbs.db

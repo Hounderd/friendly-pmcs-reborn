@@ -1,0 +1,329 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using FriendlyPMC.Server.Models;
+using FriendlyPMC.Server.Models.Requests;
+using FriendlyPMC.Server.Models.Responses;
+using SPTarkov.DI.Annotations;
+using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Models.Common;
+using SPTarkov.Server.Core.Models.Eft.Common;
+using SPTarkov.Server.Core.Models.Eft.Common.Tables;
+using SPTarkov.Server.Core.Services;
+using SPTarkov.Server.Core.Servers;
+
+namespace FriendlyPMC.Server.Services;
+
+[Injectable(InjectionType.Singleton)]
+public sealed class FollowerInventoryService(
+    FollowerRosterStore store,
+    ProfileHelper? profileHelper = null,
+    DatabaseService? databaseService = null,
+    SaveServer? saveServer = null,
+    FollowerDiagnosticsLog? diagnosticsLog = null)
+{
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    public sealed record PreviewResult(
+        bool Succeeded,
+        string? ErrorMessage,
+        IReadOnlyList<Item> PlayerItems,
+        FollowerProfileSnapshot FollowerProfile);
+
+    public static PreviewResult PreviewMove(
+        PmcData playerProfile,
+        FollowerProfileSnapshot followerProfile,
+        IReadOnlyDictionary<string, TemplateItem> itemTemplates,
+        FollowerInventoryMoveRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(playerProfile);
+        ArgumentNullException.ThrowIfNull(followerProfile);
+        ArgumentNullException.ThrowIfNull(itemTemplates);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var playerItems = CloneItems(playerProfile.Inventory?.Items ?? []);
+        var followerInventory = followerProfile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(followerProfile.Equipment);
+        if (followerInventory is null)
+        {
+            return new PreviewResult(false, "Follower inventory is unavailable.", playerItems, followerProfile);
+        }
+
+        var followerItems = CloneItems(followerInventory.Items.Select(FollowerProfileFactory.CreateInventoryItem));
+        var sourceIsPlayer = string.Equals(request.SourceOwner, "player", StringComparison.OrdinalIgnoreCase);
+        var sourceItems = sourceIsPlayer ? playerItems : followerItems;
+        var targetItems = sourceIsPlayer ? followerItems : playerItems;
+        var sourceRoot = sourceItems.FirstOrDefault(item => MatchesId(item.Id, request.ItemId));
+        if (sourceRoot is null)
+        {
+            return new PreviewResult(false, "Source item was not found.", playerItems, followerProfile);
+        }
+
+        var effectiveRequest = FollowerInventoryValidationPolicy.ResolveAutoPlacement(
+            targetItems,
+            followerInventory.EquipmentId,
+            itemTemplates,
+            request,
+            sourceRoot,
+            targetIsFollower: sourceIsPlayer);
+        var moveSubtree = CollectSubtree(sourceItems, request.ItemId);
+        var validationError = FollowerInventoryValidationPolicy.ValidateTarget(
+            targetItems,
+            followerInventory.EquipmentId,
+            itemTemplates,
+            effectiveRequest,
+            sourceRoot,
+            targetIsFollower: sourceIsPlayer);
+        if (validationError is not null)
+        {
+            return new PreviewResult(false, validationError, playerItems, followerProfile);
+        }
+
+        sourceItems.RemoveAll(item => moveSubtree.Any(child => child.Id == item.Id));
+        var movedRoot = moveSubtree[0];
+        movedRoot.ParentId = effectiveRequest.ToId;
+        movedRoot.SlotId = effectiveRequest.ToContainer;
+        movedRoot.Location = DeserializeLocation(effectiveRequest.ToLocationJson);
+        targetItems.AddRange(moveSubtree);
+
+        var updatedFollowerItems = sourceIsPlayer ? targetItems : sourceItems;
+        var updatedFollowerSnapshot = followerProfile with
+        {
+            Inventory = new FollowerInventorySnapshot(
+                followerInventory.EquipmentId,
+                updatedFollowerItems
+                    .Select(CreateSnapshotItem)
+                    .ToArray()),
+        };
+
+        return new PreviewResult(true, null, playerItems, FollowerInventoryMigrationPolicy.Upgrade(updatedFollowerSnapshot));
+    }
+
+    public async Task<FollowerInventoryMoveResponse> MoveAsync(string sessionId, FollowerInventoryMoveRequest request)
+    {
+        if (profileHelper is null || databaseService is null)
+        {
+            throw new InvalidOperationException("Follower inventory transfers are unavailable because required SPT services are not registered.");
+        }
+
+        var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
+        var profiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var profileIndex = profiles.FindIndex(profile => string.Equals(profile.Aid, request.FollowerAid, StringComparison.Ordinal));
+        if (profileIndex < 0)
+        {
+            return new FollowerInventoryMoveResponse(false, "Follower was not found.", null);
+        }
+
+        var playerProfile = profileHelper.GetPmcProfile(new MongoId(sessionId));
+        if (playerProfile?.Inventory?.Items is null)
+        {
+            return new FollowerInventoryMoveResponse(false, "Player inventory is unavailable.", null);
+        }
+
+        var templates = databaseService.GetItems()
+            .ToDictionary(entry => entry.Key.ToString(), entry => entry.Value, StringComparer.Ordinal);
+        var originalPlayerItems = CloneItems(playerProfile.Inventory.Items);
+        var originalFollowerProfile = profiles[profileIndex];
+        var preview = PreviewMove(playerProfile, originalFollowerProfile, templates, request);
+        if (!preview.Succeeded)
+        {
+            diagnosticsLog?.Append($"inventory-move session={sessionId} follower={request.FollowerAid} source={request.SourceOwner} item={request.ItemId} result=rejected reason={preview.ErrorMessage}");
+            return new FollowerInventoryMoveResponse(false, preview.ErrorMessage, originalFollowerProfile.Inventory);
+        }
+
+        try
+        {
+            playerProfile.Inventory.Items = preview.PlayerItems.ToList();
+            profiles[profileIndex] = preview.FollowerProfile;
+            await store.SaveProfilesAsync(resolvedSessionId, profiles);
+            if (saveServer is not null)
+            {
+                await saveServer.SaveProfileAsync(new MongoId(sessionId));
+            }
+
+            diagnosticsLog?.Append($"inventory-move session={sessionId} follower={request.FollowerAid} source={request.SourceOwner} item={request.ItemId} result=success");
+            return new FollowerInventoryMoveResponse(true, null, preview.FollowerProfile.Inventory);
+        }
+        catch
+        {
+            playerProfile.Inventory.Items = originalPlayerItems.ToList();
+            profiles[profileIndex] = originalFollowerProfile;
+            throw;
+        }
+    }
+
+    public async Task<GetFollowerInventoryResponse?> GetInventoryAsync(string sessionId, string followerAid)
+    {
+        try
+        {
+            if (profileHelper is null)
+            {
+                throw new InvalidOperationException("Follower inventory views are unavailable because ProfileHelper is not registered.");
+            }
+
+            var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
+            diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=start");
+            var followerProfile = (await store.LoadProfilesAsync(resolvedSessionId))
+                .FirstOrDefault(profile => string.Equals(profile.Aid, followerAid, StringComparison.Ordinal));
+            if (followerProfile is null)
+            {
+                diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=follower-miss");
+                return null;
+            }
+
+            var playerProfile = profileHelper.GetPmcProfile(new MongoId(sessionId));
+            if (playerProfile is null)
+            {
+                diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=player-miss");
+                return null;
+            }
+
+            var response = BuildInventoryView(playerProfile, followerProfile);
+            diagnosticsLog?.Append(
+                $"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=success playerItems={response.Player?.Items.Count ?? 0} followerItems={response.Follower?.Items.Count ?? 0} playerRoot={response.Player?.RootId ?? "<blank>"} followerRoot={response.Follower?.RootId ?? "<blank>"}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            diagnosticsLog?.Append($"inventory-get session={sessionId} follower={followerAid} result=error error={ex.GetType().Name}:{ex.Message}");
+            throw;
+        }
+    }
+
+    public static GetFollowerInventoryResponse BuildInventoryView(PmcData playerProfile, FollowerProfileSnapshot followerProfile)
+    {
+        var playerRootId = playerProfile.Inventory?.Stash?.ToString()
+            ?? playerProfile.Inventory?.Equipment?.ToString()
+            ?? string.Empty;
+        var playerItems = (playerProfile.Inventory?.Items ?? [])
+            .Select(CreateSnapshotItem)
+            .ToArray();
+        var followerInventory = followerProfile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(followerProfile.Equipment);
+        var followerItems = followerInventory?.Items ?? Array.Empty<FollowerInventoryItemSnapshot>();
+
+        return new GetFollowerInventoryResponse(
+            followerProfile.Aid,
+            followerProfile.Nickname,
+            new FollowerInventoryOwnerViewResponse("player", playerRootId, playerItems),
+            new FollowerInventoryOwnerViewResponse("follower", followerInventory?.EquipmentId ?? string.Empty, followerItems));
+    }
+
+    private async Task<string> ResolveStorageSessionIdAsync(string sessionId)
+    {
+        var roster = await store.LoadRosterAsync(sessionId);
+        if (roster.Count > 0)
+        {
+            return sessionId;
+        }
+
+        var knownSessionIds = store.GetKnownSessionIds();
+        if (knownSessionIds.Count != 1)
+        {
+            return sessionId;
+        }
+
+        return knownSessionIds[0];
+    }
+
+    private static List<Item> CollectSubtree(List<Item> sourceItems, string rootItemId)
+    {
+        var sourceByParentId = sourceItems
+            .Where(item => !string.IsNullOrWhiteSpace(item.ParentId))
+            .GroupBy(item => item.ParentId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key!, group => group.ToArray(), StringComparer.Ordinal);
+        var ordered = new List<Item>();
+        if (sourceItems.FirstOrDefault(item => MatchesId(item.Id, rootItemId)) is not { } root)
+        {
+            return ordered;
+        }
+
+        var queue = new Queue<Item>();
+        queue.Enqueue(root);
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            ordered.Add(current);
+            if (sourceByParentId.TryGetValue(current.Id.ToString(), out var children))
+            {
+                foreach (var child in children)
+                {
+                    queue.Enqueue(child);
+                }
+            }
+        }
+
+        return ordered;
+    }
+
+    private static List<Item> CloneItems(IEnumerable<Item> items)
+    {
+        return items
+            .Select(CloneItem)
+            .ToList();
+    }
+
+    private static Item CloneItem(Item item)
+    {
+        return new Item
+        {
+            Id = new MongoId(item.Id.ToString()),
+            Template = new MongoId(item.Template.ToString()),
+            ParentId = item.ParentId,
+            SlotId = item.SlotId,
+            Location = DeserializeLocation(SerializeOptionalJson(item.Location)),
+            Desc = item.Desc,
+            Upd = item.Upd is null
+                ? null
+                : JsonSerializer.Deserialize<Upd>(JsonSerializer.Serialize(item.Upd)),
+            ExtensionData = null,
+        };
+    }
+
+    private static FollowerInventoryItemSnapshot CreateSnapshotItem(Item item)
+    {
+        return new FollowerInventoryItemSnapshot(
+            item.Id.ToString(),
+            item.Template.ToString(),
+            NullIfEmpty(item.ParentId),
+            NullIfEmpty(item.SlotId),
+            SerializeOptionalJson(item.Location),
+            SerializeOptionalJson(item.Upd));
+    }
+
+    private static object? DeserializeLocation(string? locationJson)
+    {
+        if (string.IsNullOrWhiteSpace(locationJson))
+        {
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(locationJson);
+        return document.RootElement.Clone();
+    }
+
+    private static string? SerializeOptionalJson(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            JsonElement jsonElement => jsonElement.GetRawText(),
+            _ => JsonSerializer.Serialize(value, SnapshotJsonOptions),
+        };
+    }
+
+    private static string? NullIfEmpty(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static bool MatchesId(MongoId value, string requestedId)
+    {
+        return string.Equals(value.ToString(), requestedId, StringComparison.Ordinal);
+    }
+}

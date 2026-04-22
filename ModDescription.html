@@ -1,0 +1,115 @@
+<p><strong>Build and manage a persistent PMC squad for SPT 4.x, bring them into raids automatically, recruit new allies in the field, and manage their gear through Tarkov's own social surfaces.</strong></p>
+<p>Friendly PMCs Reborn is the active SPT 4.x continuation of FriendlyPMC focused on a practical squad loop: persistent roster members, reliable raid followers, Messenger-based management, in-raid command control, and follower equipment handling that survives real play instead of resetting every session.</p>
+<p>[tabmenu]</p>
+
+<p>[tab='Overview']</p>
+<p><strong>What this branch is built around</strong></p>
+<ul>
+    <li>Persistent follower roster records on the server side.</li>
+    <li>Autoloading selected squad members into raids as your active PMC followers.</li>
+    <li>In-raid recruitment for compatible same-side allies.</li>
+    <li>Fast command hotkeys for the follower behaviors you actually use during combat.</li>
+    <li>Messenger profile and inventory integration so squad members can be managed through Tarkov's existing UI.</li>
+</ul>
+<p>This is not a legacy maintenance branch. It is a focused SPT4 rebuild aimed at turning squad-based raids into a dependable long-term progression loop.</p>
+<p>[/tab]</p>
+
+<p>[tab='Current Features']</p>
+<p><strong>Persistent squad management</strong></p>
+<ul>
+    <li>Roster members are stored with nickname, side, autojoin state, kit mode, and follower profile snapshot data.</li>
+    <li>Autjoin-enabled members are spawned back into raids as your follower squad.</li>
+    <li>Follower progression and equipment state are saved back into the roster pipeline between raids.</li>
+</ul>
+<p><strong>Messenger and social UI</strong></p>
+<ul>
+    <li>Roster followers appear in the social UI instead of being hidden backend-only data.</li>
+    <li>Follower profiles can be opened directly from the friends list.</li>
+    <li>Follower profiles expose an <strong>OPEN INVENTORY</strong> action for direct gear management.</li>
+</ul>
+<p><strong>Follower inventory management</strong></p>
+<ul>
+    <li>Inspect what a follower is wearing and carrying from a dedicated inventory screen.</li>
+    <li>Transfer items between player inventory and follower carry space.</li>
+    <li>Equip compatible items directly into follower slots such as armor, headwear, rig, backpack, pockets, and secure container.</li>
+    <li>View follower carry containers in a structured layout instead of treating follower gear as a black box.</li>
+</ul>
+<p><strong>Recruitment and control</strong></p>
+<ul>
+    <li>Compatible same-side allies can be recruited in raid and fed back into the persistent squad flow.</li>
+    <li>Current follower control hotkeys:
+        <ul>
+            <li><strong>F6</strong> - Follow</li>
+            <li><strong>F7</strong> - Hold</li>
+            <li><strong>F8</strong> - Combat</li>
+            <li><strong>F10</strong> - Recover / assist</li>
+        </ul>
+    </li>
+    <li>Follower plate overlays provide readable ally identification in raid.</li>
+</ul>
+<p>[/tab]</p>
+
+<p>[tab='Squad Manager']</p>
+<p><strong>Squad Manager</strong> appears in Messenger as a chat bot and remains the main roster administration surface for the SPT4 branch.</p>
+<p><strong>Supported chat commands</strong></p>
+<ul>
+    <li><strong>[tt]/help[/tt]</strong> - Show command help.</li>
+    <li><strong>[tt]/list[/tt]</strong> - List roster members and their current state.</li>
+    <li><strong>[tt]/add [nickname][/tt]</strong> - Create a new follower record.</li>
+    <li><strong>[tt]/rename &lt;nickname&gt; &lt;newnickname&gt;[/tt]</strong> - Rename a follower.</li>
+    <li><strong>[tt]/delete &lt;nickname&gt;[/tt]</strong> - Remove a follower from the roster.</li>
+    <li><strong>[tt]/autojoin &lt;nickname&gt; on|off[/tt]</strong> - Toggle whether that follower joins raids automatically.</li>
+    <li><strong>[tt]/kit &lt;nickname&gt; persisted|generated[/tt]</strong> - Switch between stored follower gear and generated kits.</li>
+    <li><strong>[tt]/equiplist[/tt]</strong> - List your saved player equipment build names.</li>
+    <li><strong>[tt]/equip &lt;nickname&gt; &lt;buildname&gt;[/tt]</strong> - Apply one of your saved builds to a follower.</li>
+    <li><strong>[tt]/info &lt;nickname&gt;[/tt]</strong> - Show side, autojoin state, kit mode, level, experience, and whether the follower currently has a stored profile snapshot.</li>
+</ul>
+<p>[/tab]</p>
+
+<p>[tab='Inventory Workflow']</p>
+<p><strong>Follower inventory is handled in-game</strong></p>
+<ol>
+    <li>Open <strong>Messenger</strong>.</li>
+    <li>Open a managed follower profile from the friends list.</li>
+    <li>Select <strong>OPEN INVENTORY</strong>.</li>
+    <li>Use the follower inventory screen to inspect carried items, move items between player and follower, and equip compatible gear into follower slots.</li>
+</ol>
+<p>The follower side is designed around visible carry space rather than an artificial extra stash. The current focus is practical out-of-raid management and reliable persistence, not hiding squad gear behind chat-only flows.</p>
+<p>[/tab]</p>
+
+<p>[tab='Installation']</p>
+<p><strong>Target version</strong>: <strong>SPT 4.x</strong></p>
+<p><strong>Package layout</strong></p>
+<ul>
+    <li><strong>Client</strong>: copy the provided <strong>BepInEx</strong> contents into your SPT install.</li>
+    <li><strong>Server</strong>: copy the provided <strong>user\mods</strong> contents into your SPT install.</li>
+</ul>
+<p><strong>Dependencies and recommendations</strong></p>
+<ul>
+    <li><strong>BigBrain</strong> is required by the client plugin.</li>
+    <li><strong>Waypoints</strong> is strongly recommended for follower navigation quality.</li>
+    <li>Major bot-behavior overhauls can still affect follower behavior and should be treated as compatibility variables, not guaranteed pairings.</li>
+</ul>
+<p>[/tab]</p>
+
+<p>[tab='Compatibility Notes']</p>
+<p>Friendly PMCs Reborn is built around modern SPT4 systems, but follower AI is naturally a high-conflict area. Any mod that heavily overrides bot decision-making, movement, hostility, or spawning can change follower behavior.</p>
+<ul>
+    <li>Use Waypoints when possible for better navigation.</li>
+    <li>Expect interaction effects with large AI stacks.</li>
+    <li>Treat compatibility as an active engineering target, not a guaranteed blanket promise.</li>
+</ul>
+<p>[/tab]</p>
+
+<p>[tab='Current Direction']</p>
+<p><strong>Current priorities</strong></p>
+<ul>
+    <li>Harden raid-to-raid squad persistence.</li>
+    <li>Keep squad management inside Tarkov's social UI instead of relying on external tools.</li>
+    <li>Improve follower inventory management so loadouts and carried items are practical to maintain.</li>
+    <li>Make follower commands more reliable under modern SPT4 bot stacks.</li>
+</ul>
+<p>If you want a finished legacy feature museum, this is not that branch. If you want the active SPT4 line where persistent squad play, recruitment, inventory control, and command reliability are being rebuilt seriously, this is the branch.</p>
+<p>[/tab]</p>
+
+<p>[/tabmenu]</p>

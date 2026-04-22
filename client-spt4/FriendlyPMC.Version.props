@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <FriendlyPmcVersion>0.1.125</FriendlyPmcVersion>
+    <FriendlyPmcBuildVersionGeneratedFile>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\FriendlyPmcBuildVersion.g.cs</FriendlyPmcBuildVersionGeneratedFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(FriendlyPmcBuildVersionGeneratedFile)" Visible="false" AutoGen="true" />
+    <FriendlyPmcBuildVersionLines Include="namespace $(RootNamespace)" />
+    <FriendlyPmcBuildVersionLines Include="{" />
+    <FriendlyPmcBuildVersionLines Include="    public static class FriendlyPmcBuildVersion" />
+    <FriendlyPmcBuildVersionLines Include="    {" />
+    <FriendlyPmcBuildVersionLines Include="        public const string Value = &quot;$(FriendlyPmcVersion)&quot;%3B" />
+    <FriendlyPmcBuildVersionLines Include="        public const string AssemblyValue = &quot;$(FriendlyPmcVersion).0&quot;%3B" />
+    <FriendlyPmcBuildVersionLines Include="    }" />
+    <FriendlyPmcBuildVersionLines Include="}" />
+  </ItemGroup>
+
+  <Target Name="GenerateFriendlyPmcBuildVersionSource" BeforeTargets="BeforeCompile">
+    <WriteLinesToFile
+      File="$(FriendlyPmcBuildVersionGeneratedFile)"
+      Lines="@(FriendlyPmcBuildVersionLines)"
+      Overwrite="true" />
+  </Target>
+</Project>
