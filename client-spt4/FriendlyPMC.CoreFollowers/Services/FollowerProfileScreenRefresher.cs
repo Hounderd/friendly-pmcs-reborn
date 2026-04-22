@@ -101,7 +101,9 @@ internal static class FollowerProfileScreenTracker
 
     public static void SetVisibleProfile(string? accountId, object? screen = null)
     {
-        currentAccountId = accountId?.Trim() ?? string.Empty;
+        currentAccountId = FollowerVisibleProfileIdPolicy.Normalize(
+            accountId,
+            FollowerSocialFriendRefresh.GetFriendReferences());
         if (screen is not null)
         {
             currentScreen = new WeakReference<object>(screen);
@@ -110,7 +112,9 @@ internal static class FollowerProfileScreenTracker
 
     public static void ClearVisibleProfile(string? accountId)
     {
-        var normalizedAccountId = accountId?.Trim() ?? string.Empty;
+        var normalizedAccountId = FollowerVisibleProfileIdPolicy.Normalize(
+            accountId,
+            FollowerSocialFriendRefresh.GetFriendReferences());
         if (string.IsNullOrWhiteSpace(normalizedAccountId)
             || string.Equals(currentAccountId, normalizedAccountId, StringComparison.Ordinal))
         {
@@ -121,7 +125,9 @@ internal static class FollowerProfileScreenTracker
 
     public static bool IsViewingProfile(string? accountId)
     {
-        var normalizedAccountId = accountId?.Trim() ?? string.Empty;
+        var normalizedAccountId = FollowerVisibleProfileIdPolicy.Normalize(
+            accountId,
+            FollowerSocialFriendRefresh.GetFriendReferences());
         return !string.IsNullOrWhiteSpace(normalizedAccountId)
             && string.Equals(currentAccountId, normalizedAccountId, StringComparison.Ordinal);
     }
