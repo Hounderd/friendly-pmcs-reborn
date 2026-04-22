@@ -22,7 +22,7 @@ public static class FollowerInventoryOverlayStyle
     public const float SectionSpacing = 6f;
     public const float SectionPadding = 10f;
     public const float ColumnContentTopPadding = 4f;
-    public const float ActionDockWidth = 438f;
+    public const float ActionDockWidth = 432f;
     public const float TargetDockTopOffset = 12f;
     public const float TargetDockPadding = 8f;
 }

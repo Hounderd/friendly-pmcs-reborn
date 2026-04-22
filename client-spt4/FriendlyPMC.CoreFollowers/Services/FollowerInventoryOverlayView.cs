@@ -526,7 +526,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         var image = buttonObject.GetComponent<Image>();
         image.color = new Color(0.14f, 0.18f, 0.24f, 1f);
         var button = buttonObject.GetComponent<Button>();
-        AttachDragSource(buttonObject, item.Owner, item.Id);
+        AttachDragSource(buttonObject, actions, item.Owner, item.Id);
 
         var indent = depth * FollowerInventoryOverlayStyle.TreeIndentPerDepth;
 
@@ -603,7 +603,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         if (slot.Item is not null)
         {
             button.onClick.AddListener(() => actions.SelectItem(slot.Item.Owner, slot.Item.Id));
-            AttachDragSource(cardObject, slot.Item.Owner, slot.Item.Id);
+            AttachDragSource(cardObject, actions, slot.Item.Owner, slot.Item.Id);
             if (IsCarryContainerSlot(slot.SlotId))
             {
                 AttachDropTarget(cardObject, actions, "player", $"store:{slot.Item.Id}");
@@ -762,7 +762,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             || string.Equals(slotId, "Pockets", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AttachDragSource(GameObject gameObject, string owner, string itemId)
+    private static void AttachDragSource(GameObject gameObject, FollowerInventoryScreenActions actions, string owner, string itemId)
     {
         var dragSource = gameObject.GetComponent<FollowerInventoryDragSource>();
         if (dragSource is null)
@@ -770,7 +770,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             dragSource = gameObject.AddComponent<FollowerInventoryDragSource>();
         }
 
-        dragSource.Configure(owner, itemId);
+        dragSource.Configure(owner, itemId, actions.LogDiagnostic);
     }
 
     private static void AttachDropTarget(GameObject gameObject, FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey)
@@ -781,7 +781,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             dropTarget = gameObject.AddComponent<FollowerInventoryDropTarget>();
         }
 
-        dropTarget.Configure(actions, acceptedSourceOwner, targetKey);
+        dropTarget.Configure(actions, acceptedSourceOwner, targetKey, actions.LogDiagnostic);
     }
 
     private void RenderEmptySection(RectTransform root, string text)
@@ -888,11 +888,13 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
 
     private string owner = string.Empty;
     private string itemId = string.Empty;
+    private Action<string>? logDiagnostic;
 
-    public void Configure(string owner, string itemId)
+    public void Configure(string owner, string itemId, Action<string>? logDiagnostic)
     {
         this.owner = owner ?? string.Empty;
         this.itemId = itemId ?? string.Empty;
+        this.logDiagnostic = logDiagnostic;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -900,10 +902,12 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
         if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(itemId))
         {
             CurrentPayload = null;
+            logDiagnostic?.Invoke($"Drag begin ignored: owner={owner}, item={itemId}, reason=Missing owner or item id.");
             return;
         }
 
         CurrentPayload = new FollowerInventoryDragPayload(owner, itemId);
+        logDiagnostic?.Invoke($"Drag begin: owner={owner}, item={itemId}");
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -912,6 +916,8 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        logDiagnostic?.Invoke(
+            $"Drag end: owner={owner}, item={itemId}, pointerTarget={eventData.pointerCurrentRaycast.gameObject?.name ?? "<none>"}");
         CurrentPayload = null;
     }
 }
@@ -923,12 +929,14 @@ internal sealed class FollowerInventoryDropTarget : MonoBehaviour, IDropHandler
     private FollowerInventoryScreenActions? actions;
     private string acceptedSourceOwner = string.Empty;
     private string? targetKey;
+    private Action<string>? logDiagnostic;
 
-    public void Configure(FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey)
+    public void Configure(FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey, Action<string>? logDiagnostic)
     {
         this.actions = actions;
         this.acceptedSourceOwner = acceptedSourceOwner ?? string.Empty;
         this.targetKey = targetKey;
+        this.logDiagnostic = logDiagnostic;
     }
 
     public void OnDrop(PointerEventData eventData)
@@ -940,10 +948,30 @@ internal sealed class FollowerInventoryDropTarget : MonoBehaviour, IDropHandler
             || string.IsNullOrWhiteSpace(payload.ItemId)
             || !string.Equals(payload.Owner, acceptedSourceOwner, StringComparison.OrdinalIgnoreCase))
         {
+            logDiagnostic?.Invoke(
+                $"Drop ignored: acceptedOwner={acceptedSourceOwner}, target={targetKey ?? "<player-stash>"}, payloadOwner={payload?.Owner ?? "<none>"}, payloadItem={payload?.ItemId ?? "<none>"}");
             return;
         }
 
-        _ = actions.RunDropTransferAsync(payload.Owner, payload.ItemId, targetKey);
+        logDiagnostic?.Invoke(
+            $"Drop accepted: acceptedOwner={acceptedSourceOwner}, target={targetKey ?? "<player-stash>"}, payloadOwner={payload.Owner}, payloadItem={payload.ItemId}");
+        _ = RunTransferAsync(payload);
+    }
+
+    private async Task RunTransferAsync(FollowerInventoryDragPayload payload)
+    {
+        try
+        {
+            var result = await actions!.RunDropTransferAsync(payload.Owner, payload.ItemId, targetKey);
+            logDiagnostic?.Invoke(
+                $"Drop transfer completed: acceptedOwner={acceptedSourceOwner}, target={targetKey ?? "<player-stash>"}, payloadOwner={payload.Owner}, payloadItem={payload.ItemId}, succeeded={result.Succeeded}, error={result.ErrorMessage ?? "<none>"}");
+        }
+        catch (Exception ex)
+        {
+            logDiagnostic?.Invoke(
+                $"Drop transfer faulted: acceptedOwner={acceptedSourceOwner}, target={targetKey ?? "<player-stash>"}, payloadOwner={payload.Owner}, payloadItem={payload.ItemId}, exception={ex.GetType().Name}: {ex.Message}");
+            throw;
+        }
     }
 }
 #endif

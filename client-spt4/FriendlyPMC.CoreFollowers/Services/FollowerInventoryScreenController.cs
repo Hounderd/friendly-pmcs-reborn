@@ -81,12 +81,16 @@ public sealed class FollowerInventoryScreenController
         selectedItemId = itemId ?? string.Empty;
         var availableTargets = targetResolver.ResolveTargets(presenter.CurrentState, selectedOwner, selectedItemId);
         selectedTargetKey = availableTargets.FirstOrDefault()?.Key ?? string.Empty;
+        logInfo?.Invoke(
+            $"Follower inventory item selected: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={selectedOwner}, item={selectedItemId}, targets={availableTargets.Count}");
         ShowState(null, presenter.CurrentState);
     }
 
     public void SelectTarget(string targetKey)
     {
         selectedTargetKey = targetKey ?? string.Empty;
+        logInfo?.Invoke(
+            $"Follower inventory target selected: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, target={selectedTargetKey}");
         ShowState(null, presenter.CurrentState);
     }
 
@@ -124,6 +128,8 @@ public sealed class FollowerInventoryScreenController
                 .FirstOrDefault(target => string.Equals(target.Key, normalizedTargetKey, StringComparison.Ordinal));
             if (selectedTarget is null)
             {
+                logInfo?.Invoke(
+                    $"Follower inventory transfer rejected before move: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={normalizedTargetKey}, error=No follower target is selected.");
                 return new FollowerInventoryMoveResultDto(false, "No follower target is selected.");
             }
 
@@ -170,7 +176,8 @@ public sealed class FollowerInventoryScreenController
             SelectItem,
             SelectTarget,
             TransferSelectedAsync,
-            TransferDraggedAsync));
+            TransferDraggedAsync,
+            message => logInfo?.Invoke($"Follower inventory ui: {message}")));
         var availableTargets = targetResolver.ResolveTargets(state, selectedOwner, selectedItemId);
         if (availableTargets.Count > 0 && !availableTargets.Any(target => string.Equals(target.Key, selectedTargetKey, StringComparison.Ordinal)))
         {

@@ -55,7 +55,8 @@ public sealed record FollowerInventoryScreenActions(
     Action<string, string> SelectItem,
     Action<string> SelectTarget,
     Func<Task> RunPrimaryActionAsync,
-    Func<string, string, string?, Task<FollowerInventoryMoveResultDto>> RunDropTransferAsync);
+    Func<string, string, string?, Task<FollowerInventoryMoveResultDto>> RunDropTransferAsync,
+    Action<string>? LogDiagnostic = null);
 
 public interface IFollowerInventoryRuntimeView : IDisposable
 {
