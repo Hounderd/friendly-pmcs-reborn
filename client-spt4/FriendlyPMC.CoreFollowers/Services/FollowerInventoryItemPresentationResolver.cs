@@ -56,7 +56,9 @@ public static class FollowerInventoryItemPresentationResolver
 
     private static string? ResolveRootSlot(FollowerInventoryOwnerViewDto owner, FollowerInventoryItemViewDto item)
     {
-        var itemsById = owner.Items.ToDictionary(existing => existing.Id, StringComparer.Ordinal);
+        var itemsById = owner.Items
+            .GroupBy(existing => existing.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var currentParentId = item.ParentId;
         while (!string.IsNullOrWhiteSpace(currentParentId) && itemsById.TryGetValue(currentParentId, out var parent))
         {
