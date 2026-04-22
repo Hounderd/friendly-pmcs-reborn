@@ -531,7 +531,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         var image = buttonObject.GetComponent<Image>();
         image.color = new Color(0.14f, 0.18f, 0.24f, 1f);
         var button = buttonObject.GetComponent<Button>();
-        AttachDragSource(buttonObject, actions, item.Owner, item.Id);
+        AttachDragSource(buttonObject, actions, item.Owner, item.Id, item.TemplateId);
 
         var indent = depth * FollowerInventoryOverlayStyle.TreeIndentPerDepth;
 
@@ -608,7 +608,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         if (slot.Item is not null)
         {
             button.onClick.AddListener(() => actions.SelectItem(slot.Item.Owner, slot.Item.Id));
-            AttachDragSource(cardObject, actions, slot.Item.Owner, slot.Item.Id);
+            AttachDragSource(cardObject, actions, slot.Item.Owner, slot.Item.Id, slot.Item.TemplateId);
             if (IsCarryContainerSlot(slot.SlotId))
             {
                 AttachDropTarget(cardObject, actions, "player", $"store:{slot.Item.Id}");
@@ -767,7 +767,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             || string.Equals(slotId, "Pockets", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AttachDragSource(GameObject gameObject, FollowerInventoryScreenActions actions, string owner, string itemId)
+    private static void AttachDragSource(GameObject gameObject, FollowerInventoryScreenActions actions, string owner, string itemId, string templateId)
     {
         var dragSource = gameObject.GetComponent<FollowerInventoryDragSource>();
         if (dragSource is null)
@@ -775,7 +775,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             dragSource = gameObject.AddComponent<FollowerInventoryDragSource>();
         }
 
-        dragSource.Configure(owner, itemId, actions.LogDiagnostic);
+        dragSource.Configure(owner, itemId, templateId, actions.LogDiagnostic);
     }
 
     private static void AttachDropTarget(GameObject gameObject, FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey)
@@ -893,12 +893,14 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
 
     private string owner = string.Empty;
     private string itemId = string.Empty;
+    private string templateId = string.Empty;
     private Action<string>? logDiagnostic;
 
-    public void Configure(string owner, string itemId, Action<string>? logDiagnostic)
+    public void Configure(string owner, string itemId, string templateId, Action<string>? logDiagnostic)
     {
         this.owner = owner ?? string.Empty;
         this.itemId = itemId ?? string.Empty;
+        this.templateId = templateId ?? string.Empty;
         this.logDiagnostic = logDiagnostic;
     }
 
@@ -912,15 +914,18 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
         }
 
         CurrentPayload = new FollowerInventoryDragPayload(owner, itemId);
+        FollowerInventoryDragGhost.Show(gameObject, itemId, templateId, eventData);
         logDiagnostic?.Invoke($"Drag begin: owner={owner}, item={itemId}");
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        FollowerInventoryDragGhost.Move(eventData);
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        FollowerInventoryDragGhost.Hide();
         logDiagnostic?.Invoke(
             $"Drag end: owner={owner}, item={itemId}, pointerTarget={eventData.pointerCurrentRaycast.gameObject?.name ?? "<none>"}");
         CurrentPayload = null;
@@ -928,6 +933,100 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
 }
 
 internal sealed record FollowerInventoryDragPayload(string Owner, string ItemId);
+
+internal static class FollowerInventoryDragGhost
+{
+    private static GameObject? ghostRoot;
+    private static RectTransform? ghostRect;
+    private static RectTransform? canvasRect;
+
+    public static void Show(GameObject sourceObject, string itemId, string templateId, PointerEventData eventData)
+    {
+        Hide();
+
+        var sourceCanvas = sourceObject.GetComponentInParent<Canvas>();
+        if (sourceCanvas?.transform is not RectTransform resolvedCanvasRect)
+        {
+            return;
+        }
+
+        canvasRect = resolvedCanvasRect;
+        ghostRoot = new GameObject("FriendlyFollowerInventoryDragGhost", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        ghostRoot.transform.SetParent(canvasRect, false);
+        ghostRoot.transform.SetAsLastSibling();
+        ghostRect = ghostRoot.GetComponent<RectTransform>();
+        ghostRect.anchorMin = new Vector2(0.5f, 0.5f);
+        ghostRect.anchorMax = new Vector2(0.5f, 0.5f);
+        ghostRect.pivot = new Vector2(0.5f, 0.5f);
+        ghostRect.sizeDelta = new Vector2(62f, 62f);
+        var background = ghostRoot.GetComponent<Image>();
+        background.color = new Color(0.05f, 0.07f, 0.1f, 0.92f);
+        background.raycastTarget = false;
+
+        var iconFrame = new GameObject("IconFrame", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        iconFrame.transform.SetParent(ghostRect, false);
+        var iconFrameRect = iconFrame.GetComponent<RectTransform>();
+        StretchToParent(iconFrameRect);
+        iconFrameRect.offsetMin = new Vector2(5f, 5f);
+        iconFrameRect.offsetMax = new Vector2(-5f, -5f);
+        var iconFrameImage = iconFrame.GetComponent<Image>();
+        iconFrameImage.color = new Color(0.1f, 0.12f, 0.16f, 1f);
+        iconFrameImage.raycastTarget = false;
+
+        var iconObject = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(FollowerInventoryItemIconView));
+        iconObject.transform.SetParent(iconFrameRect, false);
+        var iconRect = iconObject.GetComponent<RectTransform>();
+        StretchToParent(iconRect);
+        iconRect.offsetMin = new Vector2(4f, 4f);
+        iconRect.offsetMax = new Vector2(-4f, -4f);
+        var iconImage = iconObject.GetComponent<Image>();
+        iconImage.color = Color.white;
+        iconImage.preserveAspect = true;
+        iconImage.raycastTarget = false;
+        iconObject.GetComponent<FollowerInventoryItemIconView>().Bind(itemId, templateId);
+
+        Move(eventData);
+    }
+
+    public static void Move(PointerEventData eventData)
+    {
+        if (ghostRect is null || canvasRect is null)
+        {
+            return;
+        }
+
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect,
+                eventData.position,
+                eventData.pressEventCamera,
+                out var localPoint))
+        {
+            return;
+        }
+
+        ghostRect.anchoredPosition = localPoint + new Vector2(28f, -28f);
+    }
+
+    public static void Hide()
+    {
+        if (ghostRoot is not null)
+        {
+            UnityEngine.Object.Destroy(ghostRoot);
+        }
+
+        ghostRoot = null;
+        ghostRect = null;
+        canvasRect = null;
+    }
+
+    private static void StretchToParent(RectTransform rectTransform)
+    {
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+    }
+}
 
 internal sealed class FollowerInventoryDropTarget : MonoBehaviour, IDropHandler
 {

@@ -59,6 +59,14 @@ public static class FollowerInventoryValidationPolicy
 
         if (string.IsNullOrWhiteSpace(request.ToLocationJson))
         {
+            if (targetIsFollower
+                && !string.Equals(request.ToId, equipmentRootId, StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(request.ToContainer)
+                && parentTemplate.Properties?.Grids?.Any(grid => !string.IsNullOrWhiteSpace(grid.Name)) == true)
+            {
+                return "No space available in target container.";
+            }
+
             return HasSlot(parentTemplate, request.ToContainer)
                 ? null
                 : "Target slot was not found.";
