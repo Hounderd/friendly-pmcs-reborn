@@ -8,6 +8,7 @@ public sealed class FollowerInventoryScreenController
     private readonly FollowerInventoryPresenter presenter;
     private readonly IFollowerInventoryRuntimeViewFactory runtimeViewFactory;
     private readonly IFollowerInventoryTargetResolver targetResolver;
+    private readonly IFollowerProfileScreenRefresher profileScreenRefresher;
     private readonly Action<string>? logInfo;
     private readonly Action<string, Exception>? logError;
     private IFollowerInventoryRuntimeView? activeRuntimeView;
@@ -19,12 +20,14 @@ public sealed class FollowerInventoryScreenController
         FollowerInventoryPresenter presenter,
         IFollowerInventoryRuntimeViewFactory? runtimeViewFactory = null,
         IFollowerInventoryTargetResolver? targetResolver = null,
+        IFollowerProfileScreenRefresher? profileScreenRefresher = null,
         Action<string>? logInfo = null,
         Action<string, Exception>? logError = null)
     {
         this.presenter = presenter;
         this.runtimeViewFactory = runtimeViewFactory ?? new FollowerInventoryRuntimeViewFactory();
         this.targetResolver = targetResolver ?? new FollowerInventoryTargetResolver();
+        this.profileScreenRefresher = profileScreenRefresher ?? new FollowerProfileScreenRefresher();
         this.logInfo = logInfo;
         this.logError = logError;
     }
@@ -160,15 +163,28 @@ public sealed class FollowerInventoryScreenController
             selectedTargetKey = string.Empty;
             logInfo?.Invoke(
                 $"Follower inventory transfer completed: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}");
+            ShowState(null, presenter.CurrentState);
+            await TryRefreshVisibleProfileAsync(presenter.CurrentState.FollowerAid);
         }
         else
         {
             logInfo?.Invoke(
                 $"Follower inventory transfer rejected: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, error={result.ErrorMessage}");
+            ShowState(null, presenter.CurrentState);
         }
-
-        ShowState(null, presenter.CurrentState);
         return result;
+    }
+
+    private async Task TryRefreshVisibleProfileAsync(string followerAid)
+    {
+        try
+        {
+            await profileScreenRefresher.RefreshAfterInventoryMoveAsync(followerAid);
+        }
+        catch (Exception ex)
+        {
+            logError?.Invoke($"Failed to refresh visible follower profile after inventory move: aid={followerAid}", ex);
+        }
     }
 
     public void Close()

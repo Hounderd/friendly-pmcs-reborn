@@ -209,7 +209,11 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             new Vector2(28f + FollowerInventoryOverlayStyle.FollowerColumnWidth + 36f, FollowerInventoryOverlayStyle.ColumnsTopOffset),
             new Vector2(FollowerInventoryOverlayStyle.PlayerColumnWidth, FollowerInventoryOverlayStyle.ColumnHeight));
         AttachDropTarget(followerColumn.ColumnRoot.gameObject, actions, "player", null);
+        AttachDropTarget(followerColumn.ScrollRoot.gameObject, actions, "player", null);
+        AttachDropTarget(followerColumn.ItemsRoot.gameObject, actions, "player", null);
         AttachDropTarget(playerColumn.ColumnRoot.gameObject, actions, "follower", null);
+        AttachDropTarget(playerColumn.ScrollRoot.gameObject, actions, "follower", null);
+        AttachDropTarget(playerColumn.ItemsRoot.gameObject, actions, "follower", null);
 
         return new FollowerInventoryOverlayView(
             overlayObject,
@@ -433,7 +437,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         throw new InvalidOperationException("Failed to resolve inventory overlay parent canvas.");
     }
 
-    private static (RectTransform ColumnRoot, TextMeshProUGUI SummaryText, RectTransform ItemsRoot) CreateColumn(
+    private static (RectTransform ColumnRoot, RectTransform ScrollRoot, TextMeshProUGUI SummaryText, RectTransform ItemsRoot) CreateColumn(
         RectTransform parent,
         TMP_FontAsset? fontAsset,
         string title,
@@ -506,7 +510,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         scrollRect.movementType = ScrollRect.MovementType.Clamped;
         scrollRect.scrollSensitivity = FollowerInventoryOverlayStyle.ScrollSensitivity;
 
-        return (columnRect, summary, contentRect);
+        return (columnRect, scrollRootRect, summary, contentRect);
     }
 
     private (Button Button, TextMeshProUGUI Label) CreateInventoryItemEntry(
