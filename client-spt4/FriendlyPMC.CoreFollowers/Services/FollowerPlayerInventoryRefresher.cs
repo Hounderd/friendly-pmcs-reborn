@@ -88,13 +88,24 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
             return null;
         }
 
+        var malformedItems = new List<string>();
         var flatItems = FollowerPlayerInventorySnapshotSyncPolicy
             .CollectRootSubtree(owner)
-            .Select(CreateFlatItem)
+            .Select(item => TryCreateFlatItem(item, out var flatItem, out var error)
+                ? flatItem
+                : TrackMalformedItem(item, error, malformedItems))
+            .Where(item => item is not null)
+            .Cast<FlatItemsDataClass>()
             .ToArray();
         if (flatItems.Length == 0)
         {
             return null;
+        }
+
+        if (malformedItems.Count > 0)
+        {
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
+                $"Skipped malformed player inventory snapshot rows during live refresh: count={malformedItems.Count}");
         }
 
         var tree = Singleton<ItemFactoryClass>.Instance.FlatItemsToTree(
@@ -106,19 +117,74 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
             : null;
     }
 
-    private static FlatItemsDataClass CreateFlatItem(FollowerInventoryItemViewDto item)
+    private static FlatItemsDataClass? TrackMalformedItem(
+        FollowerInventoryItemViewDto item,
+        string error,
+        List<string> malformedItems)
     {
-        return new FlatItemsDataClass
+        malformedItems.Add($"{item.Id}|{item.TemplateId}|{item.ParentId}|{item.SlotId}|{error}");
+        FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
+            $"Skipping malformed player inventory snapshot item during live refresh: id={item.Id}, tpl={item.TemplateId}, parent={item.ParentId}, slot={item.SlotId}, reason={error}");
+        return null;
+    }
+
+    private static bool TryCreateFlatItem(FollowerInventoryItemViewDto item, out FlatItemsDataClass flatItem, out string error)
+    {
+        flatItem = new FlatItemsDataClass();
+        error = string.Empty;
+        if (!TryParseMongoId(item.Id, out var id))
         {
-            _id = item.Id,
-            _tpl = item.TemplateId,
-            parentId = string.IsNullOrWhiteSpace(item.ParentId)
-                ? null
-                : new EFT.MongoID(item.ParentId),
+            error = "invalid id";
+            return false;
+        }
+
+        if (!TryParseMongoId(item.TemplateId, out var templateId))
+        {
+            error = "invalid template";
+            return false;
+        }
+
+        EFT.MongoID? parentId = null;
+        if (!string.IsNullOrWhiteSpace(item.ParentId))
+        {
+            if (!TryParseMongoId(item.ParentId, out var parsedParentId))
+            {
+                error = "invalid parent";
+                return false;
+            }
+
+            parentId = parsedParentId;
+        }
+
+        flatItem = new FlatItemsDataClass
+        {
+            _id = id,
+            _tpl = templateId,
+            parentId = parentId,
             slotId = item.SlotId ?? string.Empty,
             location = CreateJsonWrapper(item.LocationJson),
             upd = CreateJsonWrapper(item.UpdJson),
         };
+        return true;
+    }
+
+    private static bool TryParseMongoId(string? value, out EFT.MongoID mongoId)
+    {
+        mongoId = default!;
+        if (string.IsNullOrWhiteSpace(value) || value.Length != 24)
+        {
+            return false;
+        }
+
+        try
+        {
+            mongoId = new EFT.MongoID(value);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static GClass846? CreateJsonWrapper(string? json)
