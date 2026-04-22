@@ -296,20 +296,26 @@ internal static class FollowerSocialProfileScreenDiagnostics
 
     public static void LogScreenShow(object? controller)
     {
+        var accountId = ReadAccountId(OtherPlayerProfileScreenControllerProfileField?.GetValue(controller));
+        FollowerProfileScreenTracker.SetVisibleProfile(accountId);
         FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
-            $"Follower profile screen show: accountId={ReadAccountId(OtherPlayerProfileScreenControllerProfileField?.GetValue(controller))}");
+            $"Follower profile screen show: accountId={accountId}");
     }
 
     public static void LogScreenClose(object? controller, bool moveForward)
     {
+        var accountId = ReadAccountId(OtherPlayerProfileScreenControllerProfileField?.GetValue(controller));
+        FollowerProfileScreenTracker.ClearVisibleProfile(accountId);
         FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
-            $"Follower profile screen close action: accountId={ReadAccountId(OtherPlayerProfileScreenControllerProfileField?.GetValue(controller))}, moveForward={moveForward}");
+            $"Follower profile screen close action: accountId={accountId}, moveForward={moveForward}");
     }
 
     public static void LogScreenVisualShow(object? screen)
     {
+        var accountId = ReadAccountId(OtherPlayerProfileScreenProfileField?.GetValue(screen));
+        FollowerProfileScreenTracker.SetVisibleProfile(accountId);
         FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo(
-            $"Follower profile screen visual show: accountId={ReadAccountId(OtherPlayerProfileScreenProfileField?.GetValue(screen))}");
+            $"Follower profile screen visual show: accountId={accountId}");
     }
 
     public static void LogScreenDisplayStart(object? controller)

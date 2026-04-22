@@ -189,11 +189,8 @@ public sealed class FollowerApiClient : IFollowerApiClient
         try
         {
             var json = requestDispatcher.PostJson(MoveFollowerInventoryRoute, body);
-            var response = JsonConvert.DeserializeObject<FollowerInventoryMoveResponseDto>(json);
-            if (response is null)
-            {
-                response = JsonConvert.DeserializeObject<WrappedResponseDto<FollowerInventoryMoveResponseDto>>(json)?.Data;
-            }
+            var response = JsonConvert.DeserializeObject<WrappedResponseDto<FollowerInventoryMoveResponseDto>>(json)?.Data
+                ?? JsonConvert.DeserializeObject<FollowerInventoryMoveResponseDto>(json);
 
             response ??= new FollowerInventoryMoveResponseDto(false, "Inventory move failed.", null);
             return Task.FromResult(new FollowerInventoryMoveResultDto(response.Succeeded, response.ErrorMessage));
