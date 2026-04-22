@@ -190,16 +190,17 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         targetHeader.text = "FOLLOWER TARGET";
         targetHeader.rectTransform.sizeDelta = new Vector2(FollowerInventoryOverlayStyle.ActionDockWidth - (FollowerInventoryOverlayStyle.TargetDockPadding * 2f), 16f);
 
-        var targetButtonsObject = new GameObject("TargetButtons", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+        var targetButtonsObject = new GameObject("TargetButtons", typeof(RectTransform), typeof(GridLayoutGroup), typeof(ContentSizeFitter));
         targetButtonsObject.transform.SetParent(targetClusterRect, false);
         var targetButtonsRect = targetButtonsObject.GetComponent<RectTransform>();
         targetButtonsRect.sizeDelta = new Vector2(FollowerInventoryOverlayStyle.ActionDockWidth - (FollowerInventoryOverlayStyle.TargetDockPadding * 2f), 0f);
-        var targetLayout = targetButtonsObject.GetComponent<HorizontalLayoutGroup>();
-        targetLayout.spacing = FollowerInventoryOverlayStyle.TargetClusterSpacing;
-        targetLayout.childControlWidth = false;
-        targetLayout.childControlHeight = false;
-        targetLayout.childForceExpandWidth = false;
-        targetLayout.childForceExpandHeight = false;
+        var targetLayout = targetButtonsObject.GetComponent<GridLayoutGroup>();
+        targetLayout.spacing = new Vector2(FollowerInventoryOverlayStyle.TargetClusterSpacing, FollowerInventoryOverlayStyle.TargetClusterSpacing);
+        targetLayout.startAxis = GridLayoutGroup.Axis.Horizontal;
+        targetLayout.startCorner = GridLayoutGroup.Corner.UpperLeft;
+        targetLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        targetLayout.constraintCount = FollowerInventoryOverlayStyle.TargetButtonsPerRow;
+        targetLayout.cellSize = new Vector2(FollowerInventoryOverlayStyle.TargetChipWidth, FollowerInventoryOverlayStyle.TargetChipHeight);
         var targetFitter = targetButtonsObject.GetComponent<ContentSizeFitter>();
         targetFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         targetFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -493,7 +494,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         contentRect.offsetMax = new Vector2(-12f, 0f);
         var layout = content.GetComponent<VerticalLayoutGroup>();
         layout.spacing = FollowerInventoryOverlayStyle.SectionSpacing;
-        layout.padding = new RectOffset(0, 0, 0, 0);
+        layout.padding = new RectOffset(0, 0, (int)FollowerInventoryOverlayStyle.ColumnContentTopPadding, 0);
         layout.childControlHeight = true;
         layout.childControlWidth = true;
         layout.childForceExpandHeight = false;
