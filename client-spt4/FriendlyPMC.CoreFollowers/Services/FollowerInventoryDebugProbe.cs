@@ -7,12 +7,16 @@ public sealed record FollowerInventoryDebugProbeOptions(
     string Nickname,
     bool SelectFirstFollowerItem = false,
     bool SelectFirstPlayerItem = false,
-    bool TransferSelectedItem = false);
+    bool TransferSelectedItem = false,
+    bool UseDragTransferPath = false,
+    string? DragTargetKey = null);
 
 public sealed record FollowerInventoryDebugProbeReport(
     FollowerInventoryViewState State,
     string? SelectedOwner,
     string? SelectedItemId,
+    string? SelectedTargetKey,
+    bool UsedDragTransferPath,
     FollowerInventoryMoveResultDto? MoveResult,
     FollowerInventoryScreenViewModel? LastRenderedModel,
     IReadOnlyList<FollowerInventoryScreenViewModel> RenderedModels);
@@ -20,10 +24,12 @@ public sealed record FollowerInventoryDebugProbeReport(
 public sealed class FollowerInventoryDebugProbe
 {
     private readonly IFollowerApiClient apiClient;
+    private readonly IFollowerInventoryTargetResolver targetResolver;
 
-    public FollowerInventoryDebugProbe(IFollowerApiClient apiClient)
+    public FollowerInventoryDebugProbe(IFollowerApiClient apiClient, IFollowerInventoryTargetResolver? targetResolver = null)
     {
         this.apiClient = apiClient;
+        this.targetResolver = targetResolver ?? new FollowerInventoryTargetResolver();
     }
 
     public async Task<FollowerInventoryDebugProbeReport> RunAsync(FollowerInventoryDebugProbeOptions options)
@@ -36,13 +42,15 @@ public sealed class FollowerInventoryDebugProbe
         var runtimeView = new CaptureRuntimeView();
         var controller = new FollowerInventoryScreenController(
             new FollowerInventoryPresenter(apiClient),
-            new CaptureRuntimeViewFactory(runtimeView));
+            new CaptureRuntimeViewFactory(runtimeView),
+            targetResolver);
 
         try
         {
             var state = await controller.OpenManagementAsync(options.FollowerAid, options.Nickname, new object());
             var selectedOwner = string.Empty;
             var selectedItemId = string.Empty;
+            var selectedTargetKey = string.Empty;
 
             if (options.SelectFirstFollowerItem || options.SelectFirstPlayerItem || options.TransferSelectedItem)
             {
@@ -57,10 +65,37 @@ public sealed class FollowerInventoryDebugProbe
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(options.DragTargetKey))
+            {
+                selectedTargetKey = options.DragTargetKey!;
+                controller.SelectTarget(selectedTargetKey);
+            }
+
             FollowerInventoryMoveResultDto? moveResult = null;
             if (options.TransferSelectedItem)
             {
-                moveResult = await controller.TransferSelectedAsync();
+                if (options.UseDragTransferPath)
+                {
+                    if (string.IsNullOrWhiteSpace(selectedTargetKey))
+                    {
+                        selectedTargetKey = runtimeView.RenderedModels
+                            .LastOrDefault()?
+                            .AvailableTargets
+                            .FirstOrDefault(target => target.IsSelected)?
+                            .Key
+                            ?? runtimeView.RenderedModels.LastOrDefault()?.AvailableTargets.FirstOrDefault()?.Key
+                            ?? string.Empty;
+                    }
+
+                    moveResult = await controller.TransferDraggedAsync(
+                        selectedOwner,
+                        selectedItemId,
+                        string.IsNullOrWhiteSpace(selectedTargetKey) ? null : selectedTargetKey);
+                }
+                else
+                {
+                    moveResult = await controller.TransferSelectedAsync();
+                }
             }
 
             state = controller.Presenter.CurrentState;
@@ -69,6 +104,8 @@ public sealed class FollowerInventoryDebugProbe
                 state,
                 string.IsNullOrWhiteSpace(selectedOwner) ? null : selectedOwner,
                 string.IsNullOrWhiteSpace(selectedItemId) ? null : selectedItemId,
+                string.IsNullOrWhiteSpace(selectedTargetKey) ? null : selectedTargetKey,
+                options.UseDragTransferPath,
                 moveResult,
                 runtimeView.RenderedModels.LastOrDefault(),
                 runtimeView.RenderedModels.ToArray());
