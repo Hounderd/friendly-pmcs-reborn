@@ -930,6 +930,16 @@ internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHan
             $"Drag end: owner={owner}, item={itemId}, pointerTarget={eventData.pointerCurrentRaycast.gameObject?.name ?? "<none>"}");
         CurrentPayload = null;
     }
+
+    private void OnDisable()
+    {
+        FollowerInventoryDragGhost.Hide();
+    }
+
+    private void OnDestroy()
+    {
+        FollowerInventoryDragGhost.Hide();
+    }
 }
 
 internal sealed record FollowerInventoryDragPayload(string Owner, string ItemId);
@@ -1057,6 +1067,7 @@ internal sealed class FollowerInventoryDropTarget : MonoBehaviour, IDropHandler
             return;
         }
 
+        FollowerInventoryDragGhost.Hide();
         logDiagnostic?.Invoke(
             $"Drop accepted: acceptedOwner={acceptedSourceOwner}, target={targetKey ?? "<player-stash>"}, payloadOwner={payload.Owner}, payloadItem={payload.ItemId}");
         _ = RunTransferAsync(payload);

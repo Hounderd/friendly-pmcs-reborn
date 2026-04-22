@@ -62,7 +62,7 @@ public static class FollowerInventoryValidationPolicy
             if (targetIsFollower
                 && !string.Equals(request.ToId, equipmentRootId, StringComparison.Ordinal)
                 && string.IsNullOrWhiteSpace(request.ToContainer)
-                && parentTemplate.Properties?.Grids?.Any(grid => !string.IsNullOrWhiteSpace(grid.Name)) == true)
+                && EnumerateGridKeys(parentTemplate).Any())
             {
                 return "No space available in target container.";
             }
@@ -199,29 +199,7 @@ public static class FollowerInventoryValidationPolicy
             resolvedRequest = request;
             return false;
         }
-
-        var gridName = targetTemplate.Properties?.Grids?
-            .Select(grid => grid.Name)
-            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
-        if (string.IsNullOrWhiteSpace(gridName)
-            || !TryGetGrid(targetTemplate, gridName, out var grid)
-            || !TryFindFirstFreeGridPlacement(targetItems, templates, targetContainer.Id.ToString(), gridName, grid, movedItem, out var placement))
-        {
-            resolvedRequest = request;
-            return false;
-        }
-
-        resolvedRequest = request with
-        {
-            ToContainer = gridName,
-            ToLocationJson = JsonSerializer.Serialize(new
-            {
-                x = placement.X,
-                y = placement.Y,
-                r = placement.IsVertical ? "Vertical" : "Horizontal",
-            }),
-        };
-        return true;
+        return TryResolveContainerGridTarget(targetItems, templates, request, movedItem, targetContainer, targetTemplate, out resolvedRequest);
     }
 
     private static bool TryResolveAutoFollowerGridTarget(
@@ -247,20 +225,33 @@ public static class FollowerInventoryValidationPolicy
                 continue;
             }
 
-            var gridName = targetTemplate.Properties?.Grids?
-                .Select(grid => grid.Name)
-                .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
-            if (string.IsNullOrWhiteSpace(gridName))
+            if (TryResolveContainerGridTarget(targetItems, templates, request, movedItem, targetContainer, targetTemplate, out resolvedRequest))
+            {
+                return true;
+            }
+        }
+
+        resolvedRequest = request;
+        return false;
+    }
+
+    private static bool TryResolveContainerGridTarget(
+        IReadOnlyList<Item> targetItems,
+        IReadOnlyDictionary<string, TemplateItem> templates,
+        FollowerInventoryMoveRequest request,
+        Item movedItem,
+        Item targetContainer,
+        TemplateItem targetTemplate,
+        out FollowerInventoryMoveRequest resolvedRequest)
+    {
+        foreach (var gridKey in EnumerateGridKeys(targetTemplate))
+        {
+            if (!TryGetGrid(targetTemplate, gridKey, out var grid))
             {
                 continue;
             }
 
-            if (!TryGetGrid(targetTemplate, gridName, out var grid))
-            {
-                continue;
-            }
-
-            if (!TryFindFirstFreeGridPlacement(targetItems, templates, targetContainer.Id.ToString(), gridName, grid, movedItem, out var placement))
+            if (!TryFindFirstFreeGridPlacement(targetItems, templates, targetContainer.Id.ToString(), gridKey, grid, movedItem, out var placement))
             {
                 continue;
             }
@@ -268,7 +259,7 @@ public static class FollowerInventoryValidationPolicy
             resolvedRequest = request with
             {
                 ToId = targetContainer.Id.ToString(),
-                ToContainer = gridName,
+                ToContainer = gridKey,
                 ToLocationJson = JsonSerializer.Serialize(new
                 {
                     x = placement.X,
@@ -321,9 +312,21 @@ public static class FollowerInventoryValidationPolicy
 
     private static bool TryGetGrid(TemplateItem template, string gridName, out Grid grid)
     {
-        grid = template.Properties?.Grids?.FirstOrDefault(existing => string.Equals(existing.Name, gridName, StringComparison.Ordinal))
+        grid = template.Properties?.Grids?.FirstOrDefault(existing =>
+                string.Equals(existing.Name, gridName, StringComparison.Ordinal)
+                || string.Equals(existing.Id, gridName, StringComparison.Ordinal))
             ?? new Grid();
-        return !string.IsNullOrWhiteSpace(grid.Name);
+        return !string.IsNullOrWhiteSpace(grid.Name) || !string.IsNullOrWhiteSpace(grid.Id);
+    }
+
+    private static IEnumerable<string> EnumerateGridKeys(TemplateItem template)
+    {
+        return template.Properties?.Grids?
+            .Select(grid => !string.IsNullOrWhiteSpace(grid.Name) ? grid.Name : grid.Id)
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.Ordinal)
+            .Cast<string>()
+            ?? Enumerable.Empty<string>();
     }
 
     private static (int Width, int Height) GetItemSize(IReadOnlyDictionary<string, TemplateItem> templates, Item item)
