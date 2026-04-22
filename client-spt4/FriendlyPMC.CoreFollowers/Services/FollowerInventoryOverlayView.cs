@@ -208,6 +208,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             "PLAYER",
             new Vector2(28f + FollowerInventoryOverlayStyle.FollowerColumnWidth + 36f, FollowerInventoryOverlayStyle.ColumnsTopOffset),
             new Vector2(FollowerInventoryOverlayStyle.PlayerColumnWidth, FollowerInventoryOverlayStyle.ColumnHeight));
+        AttachDropTarget(followerColumn.ColumnRoot.gameObject, actions, "player", null);
         AttachDropTarget(playerColumn.ColumnRoot.gameObject, actions, "follower", null);
 
         return new FollowerInventoryOverlayView(
