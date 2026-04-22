@@ -1,6 +1,7 @@
 #if SPT_CLIENT
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace FriendlyPMC.CoreFollowers.Services;
@@ -154,16 +155,6 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         var closeButton = CreateDockButton(actionsRowRect, fontAsset, "Close", "CLOSE", new Vector2(160f, 42f));
         closeButton.Button.onClick.AddListener(actions.Close.Invoke);
 
-        var hint = AddText("Hint", panelRect, fontAsset, 14f, FontStyles.Italic);
-        hint.alignment = TextAlignmentOptions.Right;
-        hint.color = new Color(0.7f, 0.74f, 0.8f, 1f);
-        hint.text = "Drag or select an item, then move it between follower and player inventory.";
-        hint.rectTransform.anchorMin = new Vector2(1f, 1f);
-        hint.rectTransform.anchorMax = new Vector2(1f, 1f);
-        hint.rectTransform.pivot = new Vector2(1f, 1f);
-        hint.rectTransform.anchoredPosition = new Vector2(-28f, -68f);
-        hint.rectTransform.sizeDelta = new Vector2(500f, 22f);
-
         var targetClusterObject = new GameObject("TargetCluster", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         targetClusterObject.transform.SetParent(actionDockRect, false);
         var targetClusterRect = targetClusterObject.GetComponent<RectTransform>();
@@ -217,6 +208,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             "PLAYER",
             new Vector2(28f + FollowerInventoryOverlayStyle.FollowerColumnWidth + 36f, FollowerInventoryOverlayStyle.ColumnsTopOffset),
             new Vector2(FollowerInventoryOverlayStyle.PlayerColumnWidth, FollowerInventoryOverlayStyle.ColumnHeight));
+        AttachDropTarget(playerColumn.ColumnRoot.gameObject, actions, "follower", null);
 
         return new FollowerInventoryOverlayView(
             overlayObject,
@@ -331,7 +323,9 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
 
         foreach (var container in pane.Containers)
         {
-            var body = CreateSectionBody(root, container.Label.ToUpperInvariant(), $"{container.Items.Count} {(container.Items.Count == 1 ? "item" : "items")}");
+            var section = CreateSectionBody(root, container.Label.ToUpperInvariant(), $"{container.Items.Count} {(container.Items.Count == 1 ? "item" : "items")}");
+            var body = section.BodyRoot;
+            AttachDropTarget(section.SectionRoot.gameObject, actions, "player", $"store:{container.ContainerItemId}");
             if (container.Items.Count == 0)
             {
                 RenderEmptySection(body, "Empty.");
@@ -350,7 +344,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
 
         if (pane.OverflowItems.Count > 0)
         {
-            var body = CreateSectionBody(root, "UNPLACED ITEMS", "Missing parent links or malformed ownership.");
+            var body = CreateSectionBody(root, "UNPLACED ITEMS", "Missing parent links or malformed ownership.").BodyRoot;
             foreach (var item in pane.OverflowItems)
             {
                 var entry = CreateInventoryItemEntry(body, item, item.Depth);
@@ -365,7 +359,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
     private void RenderEquipmentSection(RectTransform root, FollowerInventoryFollowerPaneViewModel pane)
     {
         var equippedCount = pane.EquipmentSlots.Count(slot => slot.Item is not null);
-        var body = CreateSectionBody(root, "EQUIPPED", $"{equippedCount}/{pane.EquipmentSlots.Count} slots filled", true);
+        var body = CreateSectionBody(root, "EQUIPPED", $"{equippedCount}/{pane.EquipmentSlots.Count} slots filled", true).BodyRoot;
 
         var rowsRoot = new GameObject("EquipmentRows", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         rowsRoot.transform.SetParent(body, false);
@@ -438,7 +432,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         throw new InvalidOperationException("Failed to resolve inventory overlay parent canvas.");
     }
 
-    private static (TextMeshProUGUI SummaryText, RectTransform ItemsRoot) CreateColumn(
+    private static (RectTransform ColumnRoot, TextMeshProUGUI SummaryText, RectTransform ItemsRoot) CreateColumn(
         RectTransform parent,
         TMP_FontAsset? fontAsset,
         string title,
@@ -511,7 +505,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         scrollRect.movementType = ScrollRect.MovementType.Clamped;
         scrollRect.scrollSensitivity = FollowerInventoryOverlayStyle.ScrollSensitivity;
 
-        return (summary, contentRect);
+        return (columnRect, summary, contentRect);
     }
 
     private (Button Button, TextMeshProUGUI Label) CreateInventoryItemEntry(
@@ -532,6 +526,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         var image = buttonObject.GetComponent<Image>();
         image.color = new Color(0.14f, 0.18f, 0.24f, 1f);
         var button = buttonObject.GetComponent<Button>();
+        AttachDragSource(buttonObject, item.Owner, item.Id);
 
         var indent = depth * FollowerInventoryOverlayStyle.TreeIndentPerDepth;
 
@@ -596,7 +591,9 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
                 ? new Color(0.16f, 0.18f, 0.13f, 1f)
                 : new Color(0.11f, 0.13f, 0.16f, 1f);
         var outline = cardObject.GetComponent<Outline>();
-        outline.effectDistance = new Vector2(1f, -1f);
+        outline.effectDistance = new Vector2(
+            FollowerInventoryOverlayStyle.BorderOutlineHorizontalPixels,
+            -FollowerInventoryOverlayStyle.BorderOutlineVerticalPixels);
         outline.effectColor = slot.Item is null
             ? new Color(0.18f, 0.21f, 0.26f, 1f)
             : new Color(0.33f, 0.38f, 0.19f, 1f);
@@ -606,6 +603,15 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         if (slot.Item is not null)
         {
             button.onClick.AddListener(() => actions.SelectItem(slot.Item.Owner, slot.Item.Id));
+            AttachDragSource(cardObject, slot.Item.Owner, slot.Item.Id);
+            if (IsCarryContainerSlot(slot.SlotId))
+            {
+                AttachDropTarget(cardObject, actions, "player", $"store:{slot.Item.Id}");
+            }
+        }
+        else
+        {
+            AttachDropTarget(cardObject, actions, "player", $"equip:{slot.SlotId}");
         }
 
         var slotLabel = AddText("SlotLabel", rect, fontAsset, 12f, FontStyles.Bold);
@@ -679,7 +685,7 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         layout.flexibleWidth = 1f;
     }
 
-    private RectTransform CreateSectionBody(Transform parent, string title, string? subtitle = null, bool isEquipmentSection = false)
+    private (RectTransform SectionRoot, RectTransform BodyRoot) CreateSectionBody(Transform parent, string title, string? subtitle = null, bool isEquipmentSection = false)
     {
         var section = new GameObject($"{title}-Section", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Outline), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter), typeof(LayoutElement));
         section.transform.SetParent(parent, false);
@@ -692,7 +698,9 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
             ? new Color(0.07f, 0.09f, 0.11f, 0.98f)
             : new Color(0.08f, 0.1f, 0.12f, 0.98f);
         var outline = section.GetComponent<Outline>();
-        outline.effectDistance = new Vector2(1f, -1f);
+        outline.effectDistance = new Vector2(
+            FollowerInventoryOverlayStyle.BorderOutlineHorizontalPixels,
+            -FollowerInventoryOverlayStyle.BorderOutlineVerticalPixels);
         outline.effectColor = isEquipmentSection
             ? new Color(0.25f, 0.29f, 0.18f, 1f)
             : new Color(0.17f, 0.2f, 0.24f, 1f);
@@ -743,7 +751,37 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         bodyLayout.childForceExpandWidth = true;
         bodyLayout.childForceExpandHeight = false;
         bodyObject.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        return bodyRect;
+        return (sectionRect, bodyRect);
+    }
+
+    private static bool IsCarryContainerSlot(string slotId)
+    {
+        return string.Equals(slotId, "Backpack", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(slotId, "TacticalVest", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(slotId, "SecuredContainer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(slotId, "Pockets", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AttachDragSource(GameObject gameObject, string owner, string itemId)
+    {
+        var dragSource = gameObject.GetComponent<FollowerInventoryDragSource>();
+        if (dragSource is null)
+        {
+            dragSource = gameObject.AddComponent<FollowerInventoryDragSource>();
+        }
+
+        dragSource.Configure(owner, itemId);
+    }
+
+    private static void AttachDropTarget(GameObject gameObject, FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey)
+    {
+        var dropTarget = gameObject.GetComponent<FollowerInventoryDropTarget>();
+        if (dropTarget is null)
+        {
+            dropTarget = gameObject.AddComponent<FollowerInventoryDropTarget>();
+        }
+
+        dropTarget.Configure(actions, acceptedSourceOwner, targetKey);
     }
 
     private void RenderEmptySection(RectTransform root, string text)
@@ -841,6 +879,71 @@ internal sealed class FollowerInventoryOverlayView : IFollowerInventoryRuntimeVi
         rectTransform.anchorMax = Vector2.one;
         rectTransform.offsetMin = Vector2.zero;
         rectTransform.offsetMax = Vector2.zero;
+    }
+}
+
+internal sealed class FollowerInventoryDragSource : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+{
+    public static FollowerInventoryDragPayload? CurrentPayload { get; private set; }
+
+    private string owner = string.Empty;
+    private string itemId = string.Empty;
+
+    public void Configure(string owner, string itemId)
+    {
+        this.owner = owner ?? string.Empty;
+        this.itemId = itemId ?? string.Empty;
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(itemId))
+        {
+            CurrentPayload = null;
+            return;
+        }
+
+        CurrentPayload = new FollowerInventoryDragPayload(owner, itemId);
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        CurrentPayload = null;
+    }
+}
+
+internal sealed record FollowerInventoryDragPayload(string Owner, string ItemId);
+
+internal sealed class FollowerInventoryDropTarget : MonoBehaviour, IDropHandler
+{
+    private FollowerInventoryScreenActions? actions;
+    private string acceptedSourceOwner = string.Empty;
+    private string? targetKey;
+
+    public void Configure(FollowerInventoryScreenActions actions, string acceptedSourceOwner, string? targetKey)
+    {
+        this.actions = actions;
+        this.acceptedSourceOwner = acceptedSourceOwner ?? string.Empty;
+        this.targetKey = targetKey;
+    }
+
+    public void OnDrop(PointerEventData eventData)
+    {
+        var payload = FollowerInventoryDragSource.CurrentPayload;
+        if (payload is null
+            || actions is null
+            || string.IsNullOrWhiteSpace(payload.Owner)
+            || string.IsNullOrWhiteSpace(payload.ItemId)
+            || !string.Equals(payload.Owner, acceptedSourceOwner, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _ = actions.RunDropTransferAsync(payload.Owner, payload.ItemId, targetKey);
     }
 }
 #endif

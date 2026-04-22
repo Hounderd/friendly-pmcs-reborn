@@ -92,29 +92,36 @@ public sealed class FollowerInventoryScreenController
 
     public async Task<FollowerInventoryMoveResultDto> TransferSelectedAsync()
     {
-        if (string.IsNullOrWhiteSpace(selectedItemId))
+        return await TransferDraggedAsync(selectedOwner, selectedItemId, selectedTargetKey);
+    }
+
+    public async Task<FollowerInventoryMoveResultDto> TransferDraggedAsync(string sourceOwner, string itemId, string? targetKey)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
         {
             return new FollowerInventoryMoveResultDto(false, "No transferable item is selected.");
         }
 
+        var normalizedSourceOwner = sourceOwner?.Trim() ?? string.Empty;
+        var normalizedTargetKey = targetKey?.Trim() ?? string.Empty;
         logInfo?.Invoke(
-            $"Follower inventory transfer requested: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={selectedOwner}, item={selectedItemId}, target={selectedTargetKey}");
+            $"Follower inventory transfer requested: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}, owner={normalizedSourceOwner}, item={itemId}, target={normalizedTargetKey}");
 
         FollowerInventoryMoveResultDto result;
-        if (string.Equals(selectedOwner, "follower", StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(normalizedSourceOwner, "follower", StringComparison.OrdinalIgnoreCase)
             && presenter.CurrentState.Player is not null)
         {
             result = await presenter.MoveAsync(
                 "follower",
-                selectedItemId,
+                itemId,
                 presenter.CurrentState.Player.RootId,
                 PlayerStashGridContainer,
                 null);
         }
-        else if (string.Equals(selectedOwner, "player", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(normalizedSourceOwner, "player", StringComparison.OrdinalIgnoreCase))
         {
-            var selectedTarget = targetResolver.ResolveTargets(presenter.CurrentState, selectedOwner, selectedItemId)
-                .FirstOrDefault(target => string.Equals(target.Key, selectedTargetKey, StringComparison.Ordinal));
+            var selectedTarget = targetResolver.ResolveTargets(presenter.CurrentState, normalizedSourceOwner, itemId)
+                .FirstOrDefault(target => string.Equals(target.Key, normalizedTargetKey, StringComparison.Ordinal));
             if (selectedTarget is null)
             {
                 return new FollowerInventoryMoveResultDto(false, "No follower target is selected.");
@@ -122,7 +129,7 @@ public sealed class FollowerInventoryScreenController
 
             result = await presenter.MoveAsync(
                 "player",
-                selectedItemId,
+                itemId,
                 selectedTarget.ToId,
                 selectedTarget.ToContainer,
                 selectedTarget.ToLocationJson);
@@ -162,7 +169,8 @@ public sealed class FollowerInventoryScreenController
             Close,
             SelectItem,
             SelectTarget,
-            TransferSelectedAsync));
+            TransferSelectedAsync,
+            TransferDraggedAsync));
         var availableTargets = targetResolver.ResolveTargets(state, selectedOwner, selectedItemId);
         if (availableTargets.Count > 0 && !availableTargets.Any(target => string.Equals(target.Key, selectedTargetKey, StringComparison.Ordinal)))
         {
