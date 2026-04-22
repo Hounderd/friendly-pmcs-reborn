@@ -35,16 +35,16 @@ internal static class FollowerPlayerInventoryRuntime
 internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventoryRefresher
 {
     private readonly Func<InventoryController?> getInventoryController;
-    private readonly Func<FollowerInventoryOwnerViewDto, StashItemClass?> buildStashFromSnapshot;
+    private readonly Func<FollowerInventoryOwnerViewDto, Inventory, Inventory?> buildInventoryFromSnapshot;
     private readonly Action<string>? logInfo;
 
     public FollowerPlayerInventoryRefresher(
         Func<InventoryController?>? getInventoryController = null,
-        Func<FollowerInventoryOwnerViewDto, StashItemClass?>? buildStashFromSnapshot = null,
+        Func<FollowerInventoryOwnerViewDto, Inventory, Inventory?>? buildInventoryFromSnapshot = null,
         Action<string>? logInfo = null)
     {
         this.getInventoryController = getInventoryController ?? FollowerPlayerInventoryRuntime.GetBoundInventoryController;
-        this.buildStashFromSnapshot = buildStashFromSnapshot ?? BuildStashFromSnapshot;
+        this.buildInventoryFromSnapshot = buildInventoryFromSnapshot ?? BuildInventoryFromSnapshot;
         this.logInfo = logInfo ?? FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo;
     }
 
@@ -61,27 +61,27 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
             return Task.CompletedTask;
         }
 
-        var stash = buildStashFromSnapshot(playerInventory);
-        if (stash is null)
+        var refreshedInventory = buildInventoryFromSnapshot(playerInventory, inventoryController.Inventory);
+        if (refreshedInventory is null)
         {
-            logInfo?.Invoke("Skipped live player inventory refresh after follower move: player stash snapshot could not be rebuilt.");
+            logInfo?.Invoke("Skipped live player inventory refresh after follower move: player inventory snapshot could not be rebuilt.");
             return Task.CompletedTask;
         }
 
-        inventoryController.Inventory.Stash = stash;
+        inventoryController.ReplaceInventory(refreshedInventory);
         if (inventoryController.Profile is EFT.Profile profile && profile.Inventory is not null)
         {
-            profile.Inventory.Stash = stash;
-            profile.Inventory.UpdateTotalWeight(EventArgs.Empty);
+            profile.Inventory = refreshedInventory;
+            refreshedInventory.UpdateTotalWeight(EventArgs.Empty);
         }
 
-        inventoryController.Inventory.UpdateTotalWeight(EventArgs.Empty);
+        refreshedInventory.UpdateTotalWeight(EventArgs.Empty);
         inventoryController.ReportProfileUpdate();
         logInfo?.Invoke($"Applied live player inventory refresh after follower move: stashRoot={playerInventory.RootId}, itemCount={playerInventory.Items.Count}");
         return Task.CompletedTask;
     }
 
-    internal static StashItemClass? BuildStashFromSnapshot(FollowerInventoryOwnerViewDto owner)
+    internal static Inventory? BuildInventoryFromSnapshot(FollowerInventoryOwnerViewDto owner, Inventory currentInventory)
     {
         if (!Singleton<ItemFactoryClass>.Instantiated)
         {
@@ -89,8 +89,8 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
         }
 
         var malformedItems = new List<string>();
-        var flatItems = FollowerPlayerInventorySnapshotSyncPolicy
-            .CollectRootSubtree(owner)
+        var flatItems = FollowerPlayerInventoryLiveRefreshPolicy
+            .NormalizeForLiveRefresh(owner)
             .Select(item => TryCreateFlatItem(item, out var flatItem, out var error)
                 ? flatItem
                 : TrackMalformedItem(item, error, malformedItems))
@@ -108,13 +108,7 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
                 $"Skipped malformed player inventory snapshot rows during live refresh: count={malformedItems.Count}");
         }
 
-        var tree = Singleton<ItemFactoryClass>.Instance.FlatItemsToTree(
-            flatItems,
-            true,
-            new Dictionary<string, Item>(StringComparer.Ordinal));
-        return tree.Items.TryGetValue(owner.RootId, out var rootItem)
-            ? rootItem as StashItemClass
-            : null;
+        return RebuildInventoryFromFlatItems(flatItems, currentInventory);
     }
 
     private static FlatItemsDataClass? TrackMalformedItem(
@@ -198,6 +192,32 @@ internal sealed class FollowerPlayerInventoryRefresher : IFollowerPlayerInventor
         {
             JToken = JToken.Parse(json),
         };
+    }
+
+    private static Inventory? RebuildInventoryFromFlatItems(FlatItemsDataClass[] flatItems, Inventory currentInventory)
+    {
+        var inventoryDescriptorType = AccessTools.TypeByName("EFTInventoryClass");
+        if (inventoryDescriptorType is null)
+        {
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo("Skipped live player inventory refresh after follower move: EFTInventoryClass type was not found.");
+            return null;
+        }
+
+        var descriptor = Activator.CreateInstance(inventoryDescriptorType, currentInventory, null);
+        if (descriptor is null)
+        {
+            return null;
+        }
+
+        AccessTools.Field(inventoryDescriptorType, "Gclass1390_0")?.SetValue(descriptor, flatItems);
+        AccessTools.Field(inventoryDescriptorType, "MongoID_0")?.SetValue(descriptor, currentInventory.Equipment.Id);
+        AccessTools.Field(inventoryDescriptorType, "Nullable_0")?.SetValue(descriptor, currentInventory.Stash?.Id);
+        AccessTools.Field(inventoryDescriptorType, "Nullable_1")?.SetValue(descriptor, currentInventory.QuestRaidItems?.Id);
+        AccessTools.Field(inventoryDescriptorType, "Nullable_2")?.SetValue(descriptor, currentInventory.QuestStashItems?.Id);
+        AccessTools.Field(inventoryDescriptorType, "Nullable_3")?.SetValue(descriptor, currentInventory.SortingTable?.Id);
+        AccessTools.Field(inventoryDescriptorType, "Nullable_4")?.SetValue(descriptor, currentInventory.HideoutCustomizationStash?.Id);
+
+        return AccessTools.Method(inventoryDescriptorType, "ToInventory")?.Invoke(descriptor, null) as Inventory;
     }
 }
 #else
