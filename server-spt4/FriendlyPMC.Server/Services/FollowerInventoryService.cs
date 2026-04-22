@@ -81,7 +81,10 @@ public sealed class FollowerInventoryService(
             return new PreviewResult(false, validationError, playerItems, followerProfile);
         }
 
+        var originalParentId = sourceRoot.ParentId;
+        var originalSlotId = sourceRoot.SlotId;
         sourceItems.RemoveAll(item => moveSubtree.Any(child => child.Id == item.Id));
+        NormalizeIndexedSiblingLocations(sourceItems, originalParentId, originalSlotId);
         var movedRoot = moveSubtree[0];
         movedRoot.ParentId = effectiveRequest.ToId;
         movedRoot.SlotId = effectiveRequest.ToContainer;
@@ -325,5 +328,43 @@ public sealed class FollowerInventoryService(
     private static bool MatchesId(MongoId value, string requestedId)
     {
         return string.Equals(value.ToString(), requestedId, StringComparison.Ordinal);
+    }
+
+    private static void NormalizeIndexedSiblingLocations(List<Item> items, string? parentId, string? slotId)
+    {
+        if (string.IsNullOrWhiteSpace(parentId) || string.IsNullOrWhiteSpace(slotId))
+        {
+            return;
+        }
+
+        var indexedSiblings = items
+            .Where(item =>
+                string.Equals(item.ParentId, parentId, StringComparison.Ordinal)
+                && string.Equals(item.SlotId, slotId, StringComparison.Ordinal))
+            .Select(item => new { Item = item, Index = TryReadIndexedLocation(item.Location) })
+            .Where(entry => entry.Index.HasValue)
+            .OrderBy(entry => entry.Index!.Value)
+            .ToArray();
+        if (indexedSiblings.Length == 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < indexedSiblings.Length; index++)
+        {
+            indexedSiblings[index].Item.Location = index;
+        }
+    }
+
+    private static int? TryReadIndexedLocation(object? location)
+    {
+        return location switch
+        {
+            null => null,
+            int value => value,
+            long value => checked((int)value),
+            JsonElement jsonElement when jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetInt32(out var value) => value,
+            _ => null,
+        };
     }
 }
