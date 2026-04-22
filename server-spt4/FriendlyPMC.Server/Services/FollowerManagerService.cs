@@ -686,6 +686,10 @@ public sealed class FollowerManagerService
             normalizedProfiles.Add(profile);
         }
 
+        var (rekeyedProfiles, rekeyedChanged) = FollowerInventoryIdIntegrityPolicy.NormalizeFollowerProfiles(normalizedProfiles);
+        normalizedProfiles = rekeyedProfiles;
+        changed |= rekeyedChanged;
+
         changed |= normalizedRoster.Count != roster.Count || normalizedProfiles.Count != profiles.Count;
         return (normalizedRoster, normalizedProfiles, changed);
     }

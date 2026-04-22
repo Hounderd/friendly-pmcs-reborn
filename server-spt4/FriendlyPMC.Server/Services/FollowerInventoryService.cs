@@ -153,7 +153,8 @@ public sealed class FollowerInventoryService(
         }
 
         var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
-        var profiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var loadedProfiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var (profiles, profilesChanged) = FollowerInventoryIdIntegrityPolicy.NormalizeFollowerProfiles(loadedProfiles);
         var profileIndex = profiles.FindIndex(profile => string.Equals(profile.Aid, request.FollowerAid, StringComparison.Ordinal));
         if (profileIndex < 0)
         {
@@ -164,6 +165,21 @@ public sealed class FollowerInventoryService(
         if (playerProfile?.Inventory?.Items is null)
         {
             return new FollowerInventoryMoveResponse(false, "Player inventory is unavailable.", null);
+        }
+
+        var (normalizedPlayerItems, playerInventoryChanged) = FollowerInventoryIdIntegrityPolicy.NormalizePlayerItems(playerProfile.Inventory.Items);
+        if (playerInventoryChanged)
+        {
+            playerProfile.Inventory.Items = normalizedPlayerItems;
+        }
+
+        if (profilesChanged || playerInventoryChanged)
+        {
+            await store.SaveProfilesAsync(resolvedSessionId, profiles);
+            if (saveServer is not null)
+            {
+                await saveServer.SaveProfileAsync(new MongoId(sessionId));
+            }
         }
 
         var templates = databaseService.GetItems()
@@ -209,7 +225,8 @@ public sealed class FollowerInventoryService(
 
         var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
         diagnosticsLog?.Append($"inventory-get session={sessionId} resolved={resolvedSessionId} follower={followerAid} result=start");
-        var profiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var loadedProfiles = (await store.LoadProfilesAsync(resolvedSessionId)).ToList();
+        var (profiles, profilesChanged) = FollowerInventoryIdIntegrityPolicy.NormalizeFollowerProfiles(loadedProfiles);
         var profileIndex = profiles.FindIndex(profile => string.Equals(profile.Aid, followerAid, StringComparison.Ordinal));
         var followerProfile = profileIndex >= 0 ? profiles[profileIndex] : null;
         if (followerProfile is null)
@@ -231,7 +248,13 @@ public sealed class FollowerInventoryService(
             return null;
         }
 
-        var playerInventoryChanged = NormalizeAllIndexedSiblingLocations(playerProfile.Inventory.Items);
+        var (normalizedPlayerItems, duplicatePlayerIdsChanged) = FollowerInventoryIdIntegrityPolicy.NormalizePlayerItems(playerProfile.Inventory.Items);
+        if (duplicatePlayerIdsChanged)
+        {
+            playerProfile.Inventory.Items = normalizedPlayerItems;
+        }
+
+        var playerInventoryChanged = duplicatePlayerIdsChanged || NormalizeAllIndexedSiblingLocations(playerProfile.Inventory.Items);
         var followerInventory = followerProfile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(followerProfile.Equipment);
         var followerInventoryItems = CloneItems(followerInventory?.Items.Select(FollowerProfileFactory.CreateInventoryItem) ?? []);
         var followerInventoryChanged = NormalizeAllIndexedSiblingLocations(followerInventoryItems);
@@ -246,9 +269,9 @@ public sealed class FollowerInventoryService(
             profiles[profileIndex] = FollowerInventoryMigrationPolicy.Upgrade(followerProfile);
         }
 
-        if (playerInventoryChanged || followerInventoryChanged)
+        if (profilesChanged || playerInventoryChanged || followerInventoryChanged)
         {
-            if (followerInventoryChanged)
+            if (profilesChanged || followerInventoryChanged)
             {
                 await store.SaveProfilesAsync(resolvedSessionId, profiles);
             }
@@ -259,7 +282,7 @@ public sealed class FollowerInventoryService(
             }
 
             diagnosticsLog?.Append(
-                $"inventory-heal session={sessionId} resolved={resolvedSessionId} follower={followerAid} playerChanged={playerInventoryChanged} followerChanged={followerInventoryChanged}");
+                $"inventory-heal session={sessionId} resolved={resolvedSessionId} follower={followerAid} playerChanged={playerInventoryChanged} followerChanged={followerInventoryChanged} profileChanged={profilesChanged}");
         }
 
         var response = BuildInventoryView(playerProfile, followerProfile);
