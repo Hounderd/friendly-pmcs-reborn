@@ -13,6 +13,8 @@ public static class FollowerInventoryOverlayStyle
     public const float TreeIndentPerDepth = 20f;
     public const float SlotCardHeight = 76f;
     public const float TreeRowHeight = 70f;
+    public const float BorderOutlineHorizontalPixels = 1f;
+    public const float BorderOutlineVerticalPixels = 2f;
     public const int TargetButtonsPerRow = 2;
     public const float TargetChipWidth = 142f;
     public const float TargetChipHeight = 28f;

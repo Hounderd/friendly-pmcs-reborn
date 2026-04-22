@@ -1,3 +1,5 @@
+using FriendlyPMC.CoreFollowers.Models;
+
 namespace FriendlyPMC.CoreFollowers.Services;
 
 public sealed record FollowerInventoryScreenItemViewModel(
@@ -52,7 +54,8 @@ public sealed record FollowerInventoryScreenActions(
     Action Close,
     Action<string, string> SelectItem,
     Action<string> SelectTarget,
-    Func<Task> RunPrimaryActionAsync);
+    Func<Task> RunPrimaryActionAsync,
+    Func<string, string, string?, Task<FollowerInventoryMoveResultDto>> RunDropTransferAsync);
 
 public interface IFollowerInventoryRuntimeView : IDisposable
 {
