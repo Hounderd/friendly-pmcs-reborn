@@ -81,6 +81,25 @@ internal static class ProfileControllerGetOtherProfilePatch
     }
 }
 
+[HarmonyPatch(typeof(ProfileController), nameof(ProfileController.GetCompleteProfile))]
+internal static class ProfileControllerGetCompleteProfilePatch
+{
+    private static void Prefix(MongoId sessionId)
+    {
+        try
+        {
+            FollowerServerHarmonyBridge.PlayerProfileIntegrityService?
+                .RepairProfileAsync(sessionId)
+                .GetAwaiter()
+                .GetResult();
+        }
+        catch (Exception ex)
+        {
+            FollowerServerHarmonyBridge.LogError("Failed to repair player profile before complete profile load", ex);
+        }
+    }
+}
+
 [HarmonyPatch(typeof(DialogueController), nameof(DialogueController.DeleteFriend))]
 internal static class DialogueControllerDeleteFriendPatch
 {

@@ -33,7 +33,9 @@ internal sealed class FriendlyFollowerMovementLogic : CustomLogic
                 BotOwner,
                 requester.ProfileId,
                 plugin.Registry.RuntimeFollowers.Select(follower => follower.RuntimeProfileId),
-                BotDebugSnapshotMapper.GetWorldPoint(BotOwner));
+                BotDebugSnapshotMapper.GetWorldPoint(BotOwner),
+                recentThreatAttackerProfileId: null,
+                recentThreatAgeSeconds: -1f);
             var controlDecision = FriendlyFollowerMovementControlPolicy.Evaluate(
                 controlPathRuntime.ActivePath,
                 customBrainSession.CurrentDebugState.Command,

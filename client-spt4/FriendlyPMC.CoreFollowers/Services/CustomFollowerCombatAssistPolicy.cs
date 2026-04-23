@@ -31,13 +31,15 @@ public static class CustomFollowerCombatAssistPolicy
         float distanceToNearestActionableEnemyMeters)
     {
         var hasCombatSignal = haveEnemy || !string.IsNullOrWhiteSpace(targetProfileId);
+        var shouldUseBlindAttackClose = FollowerSuppressionEngagementPolicy.ShouldUseAttackCloseWithoutSight(
+            targetVisible,
+            canShoot,
+            distanceToNearestActionableEnemyMeters);
         var shouldUseSuppression = FollowerSuppressionEngagementPolicy.ShouldUseSuppression(
             targetVisible,
             canShoot,
             distanceToNearestActionableEnemyMeters);
-        var shouldUseTakeCover = targetVisible
-            && !canShoot
-            && distanceToNearestActionableEnemyMeters > FollowerSuppressionEngagementPolicy.DefaultVisibleThreatSuppressionBreakDistanceMeters;
+        var shouldUseTakeCover = false;
         var hasActiveCombatOwnership = FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName)
             || FollowerCombatRequestCleanupPolicy.IsCombatAssistRequest(currentRequestType);
         var isActivationBlocked = FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName)
@@ -53,14 +55,15 @@ public static class CustomFollowerCombatAssistPolicy
             && hasCombatSignal
             && (targetVisible || canShoot)
             && shouldUseSuppression
+            && !shouldUseBlindAttackClose
             && !shouldUseTakeCover
             && !isActivationBlocked;
         var shouldActivateAttackClose = mode == CustomFollowerBrainMode.CombatPursue
             && command is FollowerCommand.Follow or FollowerCommand.Combat
             && hasCombatSignal
-            && (targetVisible || canShoot)
+            && (targetVisible || canShoot || shouldUseBlindAttackClose)
             && !shouldUseTakeCover
-            && !shouldUseSuppression
+            && (!shouldUseSuppression || shouldUseBlindAttackClose)
             && !isActivationBlocked;
         var shouldActivateTakeCover = mode == CustomFollowerBrainMode.CombatPursue
             && command is FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover

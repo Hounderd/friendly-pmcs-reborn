@@ -4,7 +4,8 @@ public readonly record struct FollowerGoalEnemyState(
     bool HaveEnemy,
     bool IsVisible,
     bool CanShoot,
-    bool IsProtected);
+    bool IsProtected,
+    bool HasRetainedThreat);
 
 public readonly record struct FollowerKnownEnemyState(
     bool IsVisible,
@@ -19,7 +20,7 @@ public static class FollowerActionableEnemyPolicy
     {
         if (goalEnemy.HaveEnemy
             && !goalEnemy.IsProtected
-            && (goalEnemy.IsVisible || goalEnemy.CanShoot))
+            && (goalEnemy.IsVisible || goalEnemy.CanShoot || goalEnemy.HasRetainedThreat))
         {
             return true;
         }

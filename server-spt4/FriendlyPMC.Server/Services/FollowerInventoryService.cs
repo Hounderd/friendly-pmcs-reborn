@@ -167,11 +167,9 @@ public sealed class FollowerInventoryService(
             return new FollowerInventoryMoveResponse(false, "Player inventory is unavailable.", null);
         }
 
-        var (normalizedPlayerItems, playerInventoryChanged) = FollowerInventoryIdIntegrityPolicy.NormalizePlayerItems(playerProfile.Inventory.Items);
-        if (playerInventoryChanged)
-        {
-            playerProfile.Inventory.Items = normalizedPlayerItems;
-        }
+        var templates = databaseService.GetItems()
+            .ToDictionary(entry => entry.Key.ToString(), entry => entry.Value, StringComparer.Ordinal);
+        var playerInventoryChanged = FollowerInventoryIdIntegrityPolicy.NormalizePlayerProfileInventory(playerProfile, templates);
 
         if (profilesChanged || playerInventoryChanged)
         {
@@ -182,8 +180,6 @@ public sealed class FollowerInventoryService(
             }
         }
 
-        var templates = databaseService.GetItems()
-            .ToDictionary(entry => entry.Key.ToString(), entry => entry.Value, StringComparer.Ordinal);
         var originalPlayerItems = CloneItems(playerProfile.Inventory.Items);
         var originalFollowerProfile = profiles[profileIndex];
         var preview = PreviewMove(playerProfile, originalFollowerProfile, templates, request);
@@ -218,9 +214,9 @@ public sealed class FollowerInventoryService(
     {
         try
         {
-            if (profileHelper is null)
+            if (profileHelper is null || databaseService is null)
             {
-                throw new InvalidOperationException("Follower inventory views are unavailable because ProfileHelper is not registered.");
+                throw new InvalidOperationException("Follower inventory views are unavailable because required SPT services are not registered.");
             }
 
         var resolvedSessionId = await ResolveStorageSessionIdAsync(sessionId);
@@ -248,12 +244,9 @@ public sealed class FollowerInventoryService(
             return null;
         }
 
-        var (normalizedPlayerItems, duplicatePlayerIdsChanged) = FollowerInventoryIdIntegrityPolicy.NormalizePlayerItems(playerProfile.Inventory.Items);
-        if (duplicatePlayerIdsChanged)
-        {
-            playerProfile.Inventory.Items = normalizedPlayerItems;
-        }
-
+        var templates = databaseService.GetItems()
+            .ToDictionary(entry => entry.Key.ToString(), entry => entry.Value, StringComparer.Ordinal);
+        var duplicatePlayerIdsChanged = FollowerInventoryIdIntegrityPolicy.NormalizePlayerProfileInventory(playerProfile, templates);
         var playerInventoryChanged = duplicatePlayerIdsChanged || NormalizeAllIndexedSiblingLocations(playerProfile.Inventory.Items);
         var followerInventory = followerProfile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(followerProfile.Equipment);
         var followerInventoryItems = CloneItems(followerInventory?.Items.Select(FollowerProfileFactory.CreateInventoryItem) ?? []);
@@ -598,10 +591,10 @@ public sealed class FollowerInventoryService(
                     Item = item,
                     Order = order,
                     Index = TryReadIndexedLocation(item.Location),
-                    HasStructuredLocation = HasStructuredLocation(item.Location),
+                    IsIndexedLocationCompatible = IsIndexedLocationCompatible(item.Location),
                 })
                 .ToArray();
-            if (entries.Length < 2 || entries.Any(entry => entry.HasStructuredLocation))
+            if (entries.Length < 2 || entries.Any(entry => !entry.IsIndexedLocationCompatible))
             {
                 continue;
             }
@@ -636,12 +629,8 @@ public sealed class FollowerInventoryService(
         };
     }
 
-    private static bool HasStructuredLocation(object? location)
+    private static bool IsIndexedLocationCompatible(object? location)
     {
-        return location switch
-        {
-            JsonElement jsonElement when jsonElement.ValueKind is JsonValueKind.Object or JsonValueKind.Array => true,
-            _ => false,
-        };
+        return location is null || TryReadIndexedLocation(location).HasValue;
     }
 }

@@ -19,25 +19,29 @@ public static class FollowerThreatCombatAssistPolicy
         bool canShoot,
         float distanceToNearestActionableEnemyMeters)
     {
+        var shouldUseBlindAttackClose = FollowerSuppressionEngagementPolicy.ShouldUseAttackCloseWithoutSight(
+            targetVisible,
+            canShoot,
+            distanceToNearestActionableEnemyMeters);
         var shouldUseSuppression = FollowerSuppressionEngagementPolicy.ShouldUseSuppression(
             targetVisible,
             canShoot,
             distanceToNearestActionableEnemyMeters);
-        var shouldUseTakeCover = targetVisible
-            && !canShoot
-            && distanceToNearestActionableEnemyMeters > FollowerSuppressionEngagementPolicy.DefaultVisibleThreatSuppressionBreakDistanceMeters;
+        var shouldUseTakeCover = false;
         var isActivationBlocked = FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName)
             || FollowerCombatRequestCleanupPolicy.IsCombatAssistRequest(currentRequestType)
             || (command == FollowerCommand.Follow && isInFollowCombatSuppressionCooldown);
         var shouldActivateSuppression = bootstrapSucceeded
             && command is FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover
             && shouldUseSuppression
+            && !shouldUseBlindAttackClose
             && !shouldUseTakeCover
             && !isActivationBlocked;
         var shouldActivateAttackClose = bootstrapSucceeded
             && command is FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover
+            && (targetVisible || canShoot || shouldUseBlindAttackClose)
             && !shouldUseTakeCover
-            && !shouldUseSuppression
+            && (!shouldUseSuppression || shouldUseBlindAttackClose)
             && !isActivationBlocked;
         var shouldActivateTakeCover = bootstrapSucceeded
             && command is FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover

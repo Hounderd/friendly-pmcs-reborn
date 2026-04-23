@@ -5,6 +5,7 @@ using System.Threading;
 using BepInEx;
 using Comfort.Common;
 using EFT;
+using EFT.InventoryLogic;
 using FriendlyPMC.CoreFollowers.Models;
 using FriendlyPMC.CoreFollowers.Modules;
 using FriendlyPMC.CoreFollowers.Patches;
@@ -183,6 +184,7 @@ internal sealed class RaidFollowerSpawnService
         try
         {
             var profile = new Profile(descriptor);
+            LogConstructedProfileInventoryDiff(plugin, snapshot, descriptor, profile);
             plugin.LogPluginInfo(
                 $"Persisted follower descriptor constructed profile successfully: nickname={profile.Info.Nickname}, aid={snapshot.Aid}, profileId={profile.ProfileId}, accountId={profile.AccountId}, inventoryItems={profile.Inventory?.AllRealPlayerItems?.Count()}");
             return new GeneratedFollowerProfile(profile, profileData);
@@ -254,6 +256,53 @@ internal sealed class RaidFollowerSpawnService
 
         plugin.LogPluginInfo(
             $"Persisted follower descriptor summary: nickname={snapshot.Nickname}, aid={snapshot.Aid}, descriptorId={descriptor.Id}, accountId={descriptor.AccountId}, petId={(descriptor.PetId.HasValue ? descriptor.PetId.Value.ToString() : "<null>")}, traderCount={descriptor.TradersInfo?.Count ?? -1}, questCount={descriptor.QuestsData?.Count ?? -1}, inventoryItems={inventoryItems.Length}, rootItems={rootItems}, missingParents={missingParents}, cartridgeLocationKinds=[{string.Join(", ", cartridgeLocations)}]");
+    }
+
+    private static void LogConstructedProfileInventoryDiff(
+        FriendlyPmcCoreFollowersPlugin plugin,
+        FollowerSnapshotDto snapshot,
+        CompleteProfileDescriptorClass descriptor,
+        Profile profile)
+    {
+        try
+        {
+            var descriptorItems = descriptor.Inventory?.Gclass1390_0 ?? Array.Empty<FlatItemsDataClass>();
+            var nonRootDescriptorItems = descriptorItems
+                .Where(item => item.parentId is not null)
+                .ToArray();
+            var descriptorItemsById = nonRootDescriptorItems
+                .GroupBy(item => item._id.ToString(), StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var realizedItems = profile.Inventory?.AllRealPlayerItems?.ToArray() ?? Array.Empty<Item>();
+            var realizedItemIds = realizedItems
+                .Select(item => item.Id.ToString())
+                .Where(itemId => !string.IsNullOrWhiteSpace(itemId))
+                .ToHashSet(StringComparer.Ordinal);
+            var missingDescriptorItems = descriptorItemsById.Values
+                .Where(item => !realizedItemIds.Contains(item._id.ToString()))
+                .Take(6)
+                .Select(item => $"{item._id}|tpl={item._tpl}|parent={item.parentId}|slot={item.slotId}")
+                .ToArray();
+            var extraRealizedItems = realizedItems
+                .Where(item => !descriptorItemsById.ContainsKey(item.Id.ToString()))
+                .Take(6)
+                .Select(item => $"{item.Id}|tpl={item.TemplateId}|slot={item.CurrentAddress?.Container?.ID ?? "<null>"}")
+                .ToArray();
+            var missingDescriptorSummary = missingDescriptorItems.Length == 0
+                ? "<none>"
+                : string.Join(", ", missingDescriptorItems);
+            var extraRealizedSummary = extraRealizedItems.Length == 0
+                ? "<none>"
+                : string.Join(", ", extraRealizedItems);
+
+            plugin.LogPluginInfo(
+                $"Persisted follower constructed profile inventory diff: nickname={snapshot.Nickname}, aid={snapshot.Aid}, descriptorNonRootItems={nonRootDescriptorItems.Length}, realizedItems={realizedItems.Length}, missingDescriptorItems=[{missingDescriptorSummary}], extraRealizedItems=[{extraRealizedSummary}]");
+        }
+        catch (Exception ex)
+        {
+            plugin.LogPluginInfo(
+                $"Persisted follower constructed profile inventory diff failed: nickname={snapshot.Nickname}, aid={snapshot.Aid}, error={ex.GetType().Name}, detail={ex.Message}");
+        }
     }
 
     private static string DumpDescriptorToFile(FollowerSnapshotDto snapshot, CompleteProfileDescriptorClass descriptor)

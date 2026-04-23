@@ -15,7 +15,9 @@ internal static class FollowerCombatPressureContextResolver
         BotOwner botOwner,
         string? requesterProfileId,
         IEnumerable<string> registeredFollowerProfileIds,
-        BotDebugWorldPoint followerPosition)
+        BotDebugWorldPoint followerPosition,
+        string? recentThreatAttackerProfileId,
+        float recentThreatAgeSeconds)
     {
         var goalEnemy = botOwner.Memory?.GoalEnemy;
         var goalEnemyProfileId = BotEnemyStateResolver.ResolveTargetProfileId(goalEnemy);
@@ -24,6 +26,10 @@ internal static class FollowerCombatPressureContextResolver
             registeredFollowerProfileIds,
             requesterProfileId,
             goalEnemyProfileId);
+        var goalEnemyRetainedThreat = FollowerThreatMemoryRetentionPolicy.ShouldTreatGoalEnemyAsActionable(
+            goalEnemyProfileId,
+            recentThreatAttackerProfileId,
+            recentThreatAgeSeconds);
 
         var knownEnemies = ResolveKnownEnemies(botOwner, requesterProfileId, registeredFollowerProfileIds, followerPosition);
         var hasActionableEnemy = FollowerActionableEnemyPolicy.HasActionableEnemy(
@@ -31,12 +37,15 @@ internal static class FollowerCombatPressureContextResolver
                 HaveEnemy: botOwner.Memory?.HaveEnemy == true,
                 IsVisible: ReadGoalEnemyBool(goalEnemy, "IsVisible"),
                 CanShoot: ReadGoalEnemyBool(goalEnemy, "CanShoot"),
-                IsProtected: goalEnemyProtected),
+                IsProtected: goalEnemyProtected,
+                HasRetainedThreat: goalEnemyRetainedThreat),
             knownEnemies.Select(enemy => enemy.KnownEnemyState));
         var nearestDistance = FollowerActionableEnemyDistancePolicy.ResolveNearestDistance(
             new FollowerActionableEnemyDistanceCandidate(
                 IsActionable: botOwner.Memory?.HaveEnemy == true
-                    && (ReadGoalEnemyBool(goalEnemy, "IsVisible") || ReadGoalEnemyBool(goalEnemy, "CanShoot"))
+                    && (ReadGoalEnemyBool(goalEnemy, "IsVisible")
+                        || ReadGoalEnemyBool(goalEnemy, "CanShoot")
+                        || goalEnemyRetainedThreat)
                     && !goalEnemyProtected,
                 DistanceMeters: TryResolveGoalEnemyDistance(goalEnemy, followerPosition) ?? float.MaxValue),
             knownEnemies.Select(enemy => enemy.DistanceCandidate));
