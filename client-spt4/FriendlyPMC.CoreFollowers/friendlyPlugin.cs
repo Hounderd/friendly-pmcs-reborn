@@ -177,6 +177,10 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         new ItemUiContextShowPlayerProfileScreenPatch().Enable();
         new OtherPlayerProfileScreenShowPatch().Enable();
         new OtherPlayerProfileScreenVisualShowPatch().Enable();
+        new InventoryScreenShowPatch().Enable();
+        new InventoryScreenShowControllerPatch().Enable();
+        new ItemsPanelShowPatch().Enable();
+        new SimpleStashPanelShowPatch().Enable();
         new OtherPlayerProfileScreenControllerDisplayPatch().Enable();
         new OtherPlayerProfileScreenControllerShowScreenPatch().Enable();
         new OtherPlayerProfileScreenControllerShowAsyncPatch().Enable();

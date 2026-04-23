@@ -11,15 +11,21 @@ namespace FriendlyPMC.Server.Startup;
 public sealed class FriendlyPmcModule(
     ISptLogger<FriendlyPmcModule> logger,
     FollowerRosterStore rosterStore,
-    FollowerManagerSocialViewService socialViewService)
+    FollowerManagerSocialViewService socialViewService,
+    PlayerProfileIntegrityService playerProfileIntegrityService)
     : IOnLoad
 {
-    public Task OnLoad()
+    public async Task OnLoad()
     {
         rosterStore.EnsureStorageRootExists();
-        FollowerServerHarmonyBridge.Initialize(socialViewService, message => logger.Error(message));
+        var repairedProfiles = await playerProfileIntegrityService.RepairAllLoadedProfilesAsync();
+        FollowerServerHarmonyBridge.Initialize(socialViewService, playerProfileIntegrityService, message => logger.Error(message));
         FollowerServerSocialPatches.Apply();
+        if (repairedProfiles > 0)
+        {
+            logger.Success($"Repaired player inventory ids for {repairedProfiles} loaded profile(s)");
+        }
+
         logger.Success("FriendlyPMC core follower services loaded");
-        return Task.CompletedTask;
     }
 }

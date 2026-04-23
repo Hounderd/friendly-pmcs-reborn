@@ -5,6 +5,8 @@ namespace FriendlyPMC.CoreFollowers.Services;
 public sealed record FollowerInventoryDebugProbeOptions(
     string FollowerAid,
     string Nickname,
+    string? SelectedOwner = null,
+    string? SelectedItemId = null,
     bool SelectFirstFollowerItem = false,
     bool SelectFirstPlayerItem = false,
     bool TransferSelectedItem = false,
@@ -52,7 +54,13 @@ public sealed class FollowerInventoryDebugProbe
             var selectedItemId = string.Empty;
             var selectedTargetKey = string.Empty;
 
-            if (options.SelectFirstFollowerItem || options.SelectFirstPlayerItem || options.TransferSelectedItem)
+            if (!string.IsNullOrWhiteSpace(options.SelectedOwner) && !string.IsNullOrWhiteSpace(options.SelectedItemId))
+            {
+                selectedOwner = options.SelectedOwner!;
+                selectedItemId = options.SelectedItemId!;
+                controller.SelectItem(selectedOwner, selectedItemId);
+            }
+            else if (options.SelectFirstFollowerItem || options.SelectFirstPlayerItem || options.TransferSelectedItem)
             {
                 var firstSelection = options.SelectFirstPlayerItem
                     ? ("player", state.Player?.Items.FirstOrDefault(IsTransferableItem)?.Id)

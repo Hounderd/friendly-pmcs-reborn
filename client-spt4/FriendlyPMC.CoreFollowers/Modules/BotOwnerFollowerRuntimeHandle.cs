@@ -1247,11 +1247,16 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
 
     private FollowerCombatPressureContext ResolveCombatPressureContext(Player requester, BotDebugWorldPoint followerPosition)
     {
+        var recentThreatAgeSeconds = lastThreatStimulusTimeSeconds > 0f
+            ? UnityEngine.Time.time - lastThreatStimulusTimeSeconds
+            : -1f;
         return FollowerCombatPressureContextResolver.Resolve(
             botOwner,
             requester.ProfileId,
             plugin?.Registry.RuntimeFollowers.Select(follower => follower.RuntimeProfileId) ?? Array.Empty<string>(),
-            followerPosition);
+            followerPosition,
+            lastThreatStimulusAttackerProfileId,
+            recentThreatAgeSeconds);
     }
 
     private static bool ReadGoalEnemyBool(object? goalEnemy, string memberName)

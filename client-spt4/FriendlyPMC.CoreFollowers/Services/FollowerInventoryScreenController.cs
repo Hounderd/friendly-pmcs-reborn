@@ -171,7 +171,10 @@ public sealed class FollowerInventoryScreenController
             logInfo?.Invoke(
                 $"Follower inventory transfer completed: follower={presenter.CurrentState.Nickname}, aid={presenter.CurrentState.FollowerAid}");
             ShowState(null, presenter.CurrentState);
-            await TryRefreshLivePlayerInventoryAsync(presenter.CurrentState.Player);
+            if (presenter.CurrentState.Player is not null)
+            {
+                await TryRefreshLivePlayerInventoryAsync(presenter.CurrentState.Player);
+            }
             await TryRefreshVisibleProfileAsync(presenter.CurrentState.FollowerAid);
         }
         else

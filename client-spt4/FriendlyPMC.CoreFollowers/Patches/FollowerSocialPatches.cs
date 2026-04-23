@@ -491,6 +491,17 @@ internal static class FollowerSocialProfileScreenDiagnostics
     }
 }
 
+internal static class InventoryScreenShowControllerAccessor
+{
+    public static readonly Type? InventoryScreenShowControllerType =
+        AccessTools.TypeByName("EFT.UI.InventoryScreen+GClass3871");
+
+    public static readonly FieldInfo? InventoryScreenShowControllerInventoryControllerField =
+        InventoryScreenShowControllerType is null
+            ? null
+            : AccessTools.Field(InventoryScreenShowControllerType, "InventoryController");
+}
+
 internal sealed class SocialNetworkClassInitPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
@@ -682,6 +693,128 @@ internal sealed class OtherPlayerProfileScreenVisualShowPatch : ModulePatch
     private static void PatchPostfix(object __instance)
     {
         FollowerSocialProfileScreenDiagnostics.LogScreenVisualShow(__instance);
+    }
+}
+
+internal sealed class InventoryScreenShowPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(
+            AccessTools.TypeByName("EFT.UI.InventoryScreen")!,
+            "Show",
+            new[]
+            {
+                AccessTools.TypeByName("IHealthController")!,
+                typeof(InventoryController),
+                AccessTools.TypeByName("AbstractQuestControllerClass")!,
+                AccessTools.TypeByName("AbstractAchievementControllerClass")!,
+                AccessTools.TypeByName("AbstractPrestigeControllerClass")!,
+                typeof(CompoundItem),
+                AccessTools.TypeByName("EInventoryTab")!,
+                AccessTools.TypeByName("ISession")!,
+                AccessTools.TypeByName("ItemContextAbstractClass")!,
+                typeof(bool),
+            });
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(InventoryController controller)
+    {
+        FollowerPlayerInventoryRuntime.Bind(controller);
+        FollowerPlayerInventoryRuntime.ReplayLatestSnapshotToBoundController(FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo);
+    }
+}
+
+internal sealed class InventoryScreenShowControllerPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(
+            AccessTools.TypeByName("EFT.UI.InventoryScreen")!,
+            "Show",
+            new[] { AccessTools.TypeByName("EFT.UI.InventoryScreen+GClass3871")! });
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(object controller)
+    {
+        if (InventoryScreenShowControllerAccessor.InventoryScreenShowControllerInventoryControllerField?.GetValue(controller)
+            is not InventoryController inventoryController)
+        {
+            return;
+        }
+
+        FollowerPlayerInventoryRuntime.TryBindAndReplayLatestSnapshot(
+            inventoryController,
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo);
+    }
+}
+
+internal sealed class ItemsPanelShowPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(
+            AccessTools.TypeByName("EFT.UI.ItemsPanel")!,
+            "Show",
+            new[]
+            {
+                AccessTools.TypeByName("ItemContextAbstractClass")!,
+                typeof(CompoundItem),
+                AccessTools.TypeByName("ISession")!,
+                typeof(InventoryController),
+                AccessTools.TypeByName("EFT.HealthSystem.IHealthController")!,
+                typeof(EFT.Profile),
+                AccessTools.TypeByName("InsuranceCompanyClass")!,
+                AccessTools.TypeByName("EquipmentBuildsStorageClass")!,
+                AccessTools.TypeByName("EFT.UI.ItemsPanel+EItemsTab")!,
+                typeof(bool),
+                AccessTools.TypeByName("SortingTableItemClass")!,
+                AccessTools.TypeByName("EFT.UI.SimpleStashPanel+EStashSearchAvailability")!,
+                typeof(bool),
+                AccessTools.TypeByName("EFT.InventoryLogic.InventoryEquipment")!,
+            });
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(InventoryController inventoryController)
+    {
+        FollowerPlayerInventoryRuntime.TryBindAndReplayLatestSnapshot(
+            inventoryController,
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo);
+    }
+}
+
+internal sealed class SimpleStashPanelShowPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(
+            AccessTools.TypeByName("EFT.UI.SimpleStashPanel")!,
+            "Show",
+            new[]
+            {
+                typeof(CompoundItem),
+                typeof(InventoryController),
+                AccessTools.TypeByName("ItemContextAbstractClass")!,
+                typeof(bool),
+                AccessTools.TypeByName("SortingTableItemClass")!,
+                AccessTools.TypeByName("EFT.UI.SimpleStashPanel+EStashSearchAvailability")!,
+                typeof(InventoryController),
+                AccessTools.TypeByName("EFT.UI.ItemsPanel+EItemsTab")!,
+            });
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(InventoryController inventoryController, InventoryController leftSideInventoryController)
+    {
+        FollowerPlayerInventoryRuntime.TryBindAndReplayLatestSnapshot(
+            inventoryController,
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo);
+        FollowerPlayerInventoryRuntime.TryBindAndReplayLatestSnapshot(
+            leftSideInventoryController,
+            FriendlyPmcCoreFollowersPlugin.Instance.LogPluginInfo);
     }
 }
 

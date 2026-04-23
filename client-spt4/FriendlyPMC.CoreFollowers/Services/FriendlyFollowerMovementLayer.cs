@@ -116,7 +116,9 @@ internal sealed class FriendlyFollowerMovementLayer : CustomLayer
             BotOwner,
             requester.ProfileId,
             plugin.Registry.RuntimeFollowers.Select(follower => follower.RuntimeProfileId),
-            runtimeFollower.CurrentPosition);
+            runtimeFollower.CurrentPosition,
+            recentThreatAttackerProfileId: null,
+            recentThreatAgeSeconds: -1f);
 
         return FriendlyFollowerMovementControlPolicy.Evaluate(
             controlPath,
