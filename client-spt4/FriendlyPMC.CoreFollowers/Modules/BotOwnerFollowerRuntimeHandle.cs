@@ -803,6 +803,12 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
             return;
         }
 
+        if (GamePlayerOwner.MyPlayer is { } requester)
+        {
+            botOwner.BotRequestController?.TryStopCurrent(requester, false);
+            ClearQueuedRequests(requester);
+        }
+
         var releasedSuppression = LootingBotsInteropBridge.TryAllowBotToLoot(botOwner);
         var forced = LootingBotsInteropBridge.TryForceBotToScanLoot(botOwner);
         plugin?.LogPluginInfo(

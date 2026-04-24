@@ -27,7 +27,8 @@ public static class CustomFollowerMovementExecutionPolicy
             CustomFollowerNavigationIntent.CatchUpToPlayer => new CustomFollowerMovementExecutionPlan(
                 ShouldMove: true,
                 MovementIntent: FollowerMovementIntent.CatchUpToPlayer,
-                ShouldSprint: true,
+                ShouldSprint: distanceToPlayerMeters >= AlwaysSprintDistanceMeters
+                    || distanceToPlayerMeters >= settings.CatchUpDistanceMeters,
                 ArrivalRadiusMeters: MathF.Max(settings.FollowDeadzoneMeters, 2.5f),
                 ForcePathRefresh: false),
             CustomFollowerNavigationIntent.ReturnToCombatRange => new CustomFollowerMovementExecutionPlan(

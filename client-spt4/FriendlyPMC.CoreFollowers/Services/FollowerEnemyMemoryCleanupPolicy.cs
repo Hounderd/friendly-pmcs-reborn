@@ -38,18 +38,15 @@ public static class FollowerEnemyMemoryCleanupPolicy
 
         var profileIdsToForget = enemies
             .Where(ShouldForgetEnemyMemory)
+            .Where(enemy => !enemy.IsGoalEnemy)
             .Select(enemy => enemy.ProfileId)
             .Where(profileId => !string.IsNullOrWhiteSpace(profileId))
             .Distinct(StringComparer.Ordinal)
             .Cast<string>()
             .ToArray();
 
-        var shouldClearGoalEnemy = enemies.Any(enemy =>
-            enemy.IsGoalEnemy
-            && ShouldForgetEnemyMemory(enemy));
-
         return new FollowerEnemyMemoryCleanupDecision(
-            shouldClearGoalEnemy,
+            ShouldClearGoalEnemy: false,
             profileIdsToForget);
     }
 
