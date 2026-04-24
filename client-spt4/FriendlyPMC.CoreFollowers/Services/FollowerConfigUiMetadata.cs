@@ -40,6 +40,7 @@ internal static class FollowerConfigUiMetadataCatalog
         new("Debug", "Auto Smoke Follower Profile On Friend Hydrate", "10 Debug", "Auto Smoke Follower Profile On Friend Hydrate", "Debug probe that automatically opens one follower profile after the friends list hydrates.", 100, IsAdvanced: true),
         new("Debug", "Enable Bot State Diagnostics", "10 Debug", "Enable Bot State Diagnostics", "Writes periodic bot brain snapshots to the BepInEx log. Leave disabled during normal raids.", 90, IsAdvanced: true),
         new("Debug", "Enable Combat Trace Diagnostics", "10 Debug", "Enable Combat Trace Diagnostics", "Writes high-volume follower combat and SAIN protection traces. Leave disabled during normal raids.", 80, IsAdvanced: true),
+        new("Debug", "Enable Plate Diagnostics", "10 Debug", "Enable Plate Diagnostics", "Writes follower nameplate visibility diagnostics. Leave disabled during normal raids.", 70, IsAdvanced: true),
     ];
 
     public static IReadOnlyList<FollowerConfigUiMetadata> GetAll() => AllEntries;

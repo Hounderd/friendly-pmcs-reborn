@@ -189,6 +189,11 @@ internal sealed class FollowerPlateManager : MonoBehaviour
 
     private void LogSettingsOnce(FriendlyPmcCoreFollowersPlugin plugin, FollowerPlateSettings settings)
     {
+        if (!plugin.EnablePlateDiagnostics)
+        {
+            return;
+        }
+
         if (settingsLogged)
         {
             return;
@@ -201,6 +206,11 @@ internal sealed class FollowerPlateManager : MonoBehaviour
 
     private void LogEligibilityOnce(FriendlyPmcCoreFollowersPlugin plugin, IFollowerRuntimeHandle follower)
     {
+        if (!plugin.EnablePlateDiagnostics)
+        {
+            return;
+        }
+
         if (!eligibilityLoggedAids.Add(follower.Aid))
         {
             return;
@@ -221,6 +231,11 @@ internal sealed class FollowerPlateManager : MonoBehaviour
         FollowerPlateDiagnosticState state,
         FollowerPlateProjectionFailureReason failureReason = FollowerPlateProjectionFailureReason.None)
     {
+        if (!plugin.EnablePlateDiagnostics)
+        {
+            return;
+        }
+
         diagnosticStates.TryGetValue(follower.Aid, out var previousState);
         var hadPrevious = diagnosticStates.ContainsKey(follower.Aid);
         diagnosticStates[follower.Aid] = state;
@@ -246,6 +261,11 @@ internal sealed class FollowerPlateManager : MonoBehaviour
 
     private void LogSummary(FriendlyPmcCoreFollowersPlugin plugin, int runtimeFollowerCount, int visiblePlateCount)
     {
+        if (!plugin.EnablePlateDiagnostics)
+        {
+            return;
+        }
+
         if (Time.unscaledTime < nextSummaryTime)
         {
             return;

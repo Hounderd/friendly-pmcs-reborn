@@ -12,6 +12,8 @@ public enum FollowerMovementIntent
 
 public static class FollowerCatchUpPolicy
 {
+    public const float StableFollowHoldDistanceMeters = 12f;
+
     public static FollowerMovementIntent ResolveMovementIntent(
         FollowerCommand command,
         float distanceToPlayerMeters,
@@ -19,7 +21,7 @@ public static class FollowerCatchUpPolicy
     {
         return command switch
         {
-            FollowerCommand.Follow when distanceToPlayerMeters <= settings.FollowDeadzoneMeters
+            FollowerCommand.Follow when distanceToPlayerMeters <= ResolveStableFollowHoldDistance(settings)
                 => FollowerMovementIntent.HoldFormation,
             FollowerCommand.Follow when distanceToPlayerMeters >= settings.EffectiveCatchUpDistanceMeters
                 => FollowerMovementIntent.CatchUpToPlayer,
@@ -29,5 +31,10 @@ public static class FollowerCatchUpPolicy
                 => FollowerMovementIntent.ReturnToCombatRange,
             _ => FollowerMovementIntent.HoldFormation,
         };
+    }
+
+    private static float ResolveStableFollowHoldDistance(FollowerModeSettings settings)
+    {
+        return MathF.Max(settings.FollowDeadzoneMeters, StableFollowHoldDistanceMeters);
     }
 }

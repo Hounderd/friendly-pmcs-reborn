@@ -19,6 +19,13 @@ public static class FriendlyFollowerMovementControlPolicy
         bool isUnderFire,
         bool legacyShouldControlMovement)
     {
+        if (command == FollowerCommand.Loot)
+        {
+            return new FriendlyFollowerMovementControlDecision(
+                ShouldControlMovement: false,
+                YieldedToCombatPressure: false);
+        }
+
         if (controlPath == DebugSpawnFollowerControlPath.CustomBrain && customBrainMode.HasValue)
         {
             if (!FriendlyFollowerMovementLayerActivationPolicy.ShouldActivate(controlPath, customBrainMode))

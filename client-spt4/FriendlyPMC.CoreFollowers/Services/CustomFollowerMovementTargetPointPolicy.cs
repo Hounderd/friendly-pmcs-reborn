@@ -10,7 +10,8 @@ internal static class CustomFollowerMovementTargetPointPolicy
     public static BotDebugWorldPoint Resolve(
         Player requester,
         FollowerCommand command,
-        FollowerMovementIntent movementIntent)
+        FollowerMovementIntent movementIntent,
+        int formationSlotIndex = 0)
     {
         var playerPosition = requester.Transform.position;
         var forward = requester.LookDirection;
@@ -28,7 +29,7 @@ internal static class CustomFollowerMovementTargetPointPolicy
 
         forward.Normalize();
         var right = Vector3.Cross(Vector3.up, forward).normalized;
-        var offset = FollowerOrderLayerPolicy.GetOffset(command, movementIntent);
+        var offset = FollowerOrderLayerPolicy.GetOffset(command, movementIntent, formationSlotIndex);
         var target = playerPosition
             + (right * offset.X)
             + (Vector3.up * offset.Y)
@@ -47,7 +48,8 @@ internal static class CustomFollowerMovementTargetPointPolicy
     public static BotDebugWorldPoint Resolve(
         object requester,
         FollowerCommand command,
-        FollowerMovementIntent movementIntent)
+        FollowerMovementIntent movementIntent,
+        int formationSlotIndex = 0)
     {
         return new BotDebugWorldPoint(0f, 0f, 0f);
     }

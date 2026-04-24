@@ -39,12 +39,31 @@ public static class FollowerOrderLayerPolicy
 
     public static FollowerMovementOffset GetOffset(FollowerCommand command, FollowerMovementIntent intent)
     {
+        return GetOffset(command, intent, formationSlotIndex: 0);
+    }
+
+    public static FollowerMovementOffset GetOffset(
+        FollowerCommand command,
+        FollowerMovementIntent intent,
+        int formationSlotIndex)
+    {
         return (command, intent) switch
         {
             (_, FollowerMovementIntent.CatchUpToPlayer) => new FollowerMovementOffset(0f, 0f, 0f),
             (FollowerCommand.Combat, FollowerMovementIntent.ReturnToCombatRange) => new FollowerMovementOffset(0f, 0f, -10f),
             (FollowerCommand.Regroup, _) => new FollowerMovementOffset(0f, 0f, 0f),
-            _ => new FollowerMovementOffset(4.5f, 0f, -7f),
+            _ => ResolveFormationOffset(formationSlotIndex),
         };
+    }
+
+    private static FollowerMovementOffset ResolveFormationOffset(int formationSlotIndex)
+    {
+        var normalizedSlot = Math.Max(0, formationSlotIndex);
+        var row = normalizedSlot / 2;
+        var side = normalizedSlot % 2 == 0 ? 1f : -1f;
+        var lateral = 4.5f + (row * 2.5f);
+        var rear = -7f - (row * 3f);
+
+        return new FollowerMovementOffset(side * lateral, 0f, rear);
     }
 }

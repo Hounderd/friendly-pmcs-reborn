@@ -45,6 +45,7 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
     private string? observedRequestType;
     private float observedRequestSinceTimeSeconds;
     private FollowerThreatStimulusGateState threatStimulusGateState;
+    private bool sainAccuracyTuningChecked;
     private static readonly EBodyPart[] HealCommandBodyParts =
     {
         EBodyPart.Head,
@@ -192,6 +193,9 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
 
         if (command == FollowerCommand.Loot)
         {
+            activeCommand = command;
+            lastExplicitCommandTimeSeconds = UnityEngine.Time.time;
+            nextOrderReviewTime = 0f;
             ApplyLoot();
             return;
         }
@@ -252,6 +256,7 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
     public void TickOrder()
     {
         runtimeCompatibilityController.Tick();
+        TryApplySainAccuracyTuning();
 
         CustomFollowerBrainRuntimeSession? customBrainSession = null;
         if (plugin?.Registry.TryGetCustomBrainSession(Aid, out var resolvedCustomBrainSession) == true)
@@ -262,6 +267,12 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
 
         if (!effectiveCommand.HasValue)
         {
+            return;
+        }
+
+        if (activeCommand == FollowerCommand.Loot)
+        {
+            UpdateCustomPatrolSuppression(false);
             return;
         }
 
@@ -423,10 +434,12 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
                 directive.NavigationIntent.Value,
                 distanceToPlayer,
                 settings);
+            var formationSlotIndex = ResolveFormationSlotIndex();
             var desiredTargetPoint = CustomFollowerMovementTargetPointPolicy.Resolve(
                 requester,
                 session.Receiver.CurrentState.Command,
-                plan.MovementIntent);
+                plan.MovementIntent,
+                formationSlotIndex);
             var targetPoint = ResolveCustomTargetPoint(
                 requester,
                 plan,
@@ -523,6 +536,36 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
         }
 
         isCustomPatrolSuppressed = shouldSuppress;
+    }
+
+    private void TryApplySainAccuracyTuning()
+    {
+        if (sainAccuracyTuningChecked || botOwner?.Settings?.Current is null)
+        {
+            return;
+        }
+
+        sainAccuracyTuningChecked = SainFollowerAccuracyRuntimeTuner.TryApply(
+            botOwner,
+            identitySnapshot.Nickname,
+            message => plugin?.LogPluginInfo(message));
+    }
+
+    private int ResolveFormationSlotIndex()
+    {
+        if (plugin?.Registry is null)
+        {
+            return 0;
+        }
+
+        var orderedAids = plugin.Registry.RuntimeFollowers
+            .Where(follower => follower.IsOperational)
+            .Select(follower => follower.Aid)
+            .OrderBy(aid => aid, StringComparer.Ordinal)
+            .ToArray();
+        var index = Array.IndexOf(orderedAids, Aid);
+
+        return Math.Max(0, index);
     }
 
     private void OnBeingHit(DamageInfoStruct damageInfo, EBodyPart bodyPart, float damageReducedByArmor)
