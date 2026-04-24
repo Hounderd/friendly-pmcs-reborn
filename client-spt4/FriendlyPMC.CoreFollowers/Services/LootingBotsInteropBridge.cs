@@ -71,6 +71,11 @@ internal static class LootingBotsInteropBridge
             && (bool)preventBotFromLootingMethod.Invoke(null, [botOwner, durationSeconds])!;
     }
 
+    public static bool TryAllowBotToLoot(BotOwner botOwner)
+    {
+        return TryPreventBotFromLooting(botOwner, 0f);
+    }
+
     public static bool CheckIfInventoryFull(BotOwner botOwner)
     {
         return Init()
@@ -106,5 +111,7 @@ internal static class LootingBotsInteropBridge
     public static bool TryForceBotToScanLoot(object botOwner) => false;
 
     public static bool TryPreventBotFromLooting(object botOwner, float durationSeconds) => false;
+
+    public static bool TryAllowBotToLoot(object botOwner) => false;
 }
 #endif

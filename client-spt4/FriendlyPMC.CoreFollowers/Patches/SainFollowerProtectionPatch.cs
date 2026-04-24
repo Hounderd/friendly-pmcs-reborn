@@ -25,7 +25,7 @@ public sealed class SainEnemyCheckAddPatch : ModulePatch
             return true;
         }
 
-        if (FriendlyPmcCoreFollowersPlugin.Instance is { } plugin)
+        if (FriendlyPmcCoreFollowersPlugin.Instance is { EnableCombatTraceDiagnostics: true } plugin)
         {
             plugin.LogPluginInfo(
                 $"SAIN CheckAddEnemy suppressed protected target: bot={GetBotProfileId(__instance)}, target={IPlayer?.ProfileId}");
@@ -112,8 +112,11 @@ public sealed class SainEnemyManualUpdatePatch : ModulePatch
             goalEnemyProperty?.SetValue(memory, null);
         }
 
-        plugin.LogPluginInfo(
-            $"SAIN GoalEnemy cleared for protected target: bot={botProfileId}, target={targetProfileId}");
+        if (plugin.EnableCombatTraceDiagnostics)
+        {
+            plugin.LogPluginInfo(
+                $"SAIN GoalEnemy cleared for protected target: bot={botProfileId}, target={targetProfileId}");
+        }
     }
 }
 #else

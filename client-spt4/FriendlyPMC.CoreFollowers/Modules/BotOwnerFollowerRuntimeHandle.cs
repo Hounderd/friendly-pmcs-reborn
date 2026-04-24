@@ -760,11 +760,12 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
             return;
         }
 
+        var releasedSuppression = LootingBotsInteropBridge.TryAllowBotToLoot(botOwner);
         var forced = LootingBotsInteropBridge.TryForceBotToScanLoot(botOwner);
         plugin?.LogPluginInfo(
             forced
-                ? $"Follower loot scan requested: follower={identitySnapshot.Nickname}, aid={Aid}"
-                : $"Skipped command {FollowerCommand.Loot} for {identitySnapshot.Nickname}: Looting Bots runtime unavailable");
+                ? $"Follower loot scan requested: follower={identitySnapshot.Nickname}, aid={Aid}, releasedSuppression={releasedSuppression}"
+                : $"Skipped command {FollowerCommand.Loot} for {identitySnapshot.Nickname}: Looting Bots runtime unavailable, releasedSuppression={releasedSuppression}");
     }
 
     private void TryInterruptCurrentHealing(string reason)
@@ -1008,8 +1009,11 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
             }
         }
 
-        plugin?.LogPluginInfo(
-            $"Follower player combat target assist: follower={identitySnapshot.Nickname}, aid={Aid}, command={command}, target={result.PreferredTargetProfileId}, bootstrapped={result.BootstrappedThreat}, activatedSuppression={activatedSuppression}");
+        if (plugin?.EnableCombatTraceDiagnostics == true)
+        {
+            plugin.LogPluginInfo(
+                $"Follower player combat target assist: follower={identitySnapshot.Nickname}, aid={Aid}, command={command}, target={result.PreferredTargetProfileId}, bootstrapped={result.BootstrappedThreat}, activatedSuppression={activatedSuppression}");
+        }
         lastTargetBiasSummary =
             $"shot={FollowerPlayerShotMemory.TryGetRecentShot(out _)};applied={result.AppliedTargetBias};boot={result.BootstrappedThreat};assist={result.ShouldActivateCombatAssist};activated={activatedSuppression};target={result.PreferredTargetProfileId ?? "None"}";
     }
@@ -2073,8 +2077,11 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
         }
 
         lastCombatAssistTraceKey = traceKey;
-        plugin?.LogPluginInfo(
-            $"Follower combat assist state: follower={identitySnapshot.Nickname}, aid={Aid}, source={source}, command={command}, mode={(currentMode?.ToString() ?? "None")}, pick={recommendation}, activated={activated}, layer={activeLayerName ?? "None"}, request={currentRequestType ?? "None"}, target={targetProfileId ?? "None"}, visible={targetVisible}, canShoot={canShoot}, blocked={(blockReasons.Count == 0 ? "none" : string.Join("+", blockReasons))}");
+        if (plugin?.EnableCombatTraceDiagnostics == true)
+        {
+            plugin.LogPluginInfo(
+                $"Follower combat assist state: follower={identitySnapshot.Nickname}, aid={Aid}, source={source}, command={command}, mode={(currentMode?.ToString() ?? "None")}, pick={recommendation}, activated={activated}, layer={activeLayerName ?? "None"}, request={currentRequestType ?? "None"}, target={targetProfileId ?? "None"}, visible={targetVisible}, canShoot={canShoot}, blocked={(blockReasons.Count == 0 ? "none" : string.Join("+", blockReasons))}");
+        }
     }
 
     private static string BuildCleanupSummary(

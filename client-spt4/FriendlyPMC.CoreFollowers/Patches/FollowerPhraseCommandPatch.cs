@@ -31,6 +31,10 @@ public sealed class FollowerPhraseCommandPatch : ModulePatch
             plugin.LogPluginInfo(
                 $"Follower command requested: source=phrase, trigger={@event}, command={command.Value}");
         }
+        else if (@event.ToString().IndexOf("Loot", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            plugin.LogPluginInfo($"Follower loot phrase ignored: trigger={@event}");
+        }
     }
 }
 #else

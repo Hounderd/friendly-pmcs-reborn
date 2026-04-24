@@ -14,7 +14,7 @@ public static class CustomFollowerMovementDispatchPolicy
 {
     private const float MinimumTargetShiftMeters = 0.9f;
     private const float RedispatchIntervalSeconds = 1.25f;
-    private const float StableFormationRedispatchSuppressionDistanceMeters = 6.5f;
+    private const float StableFormationRedispatchSuppressionDistanceMeters = 12f;
     private const float AggressiveCatchUpDistanceMeters = 30f;
     private const float AggressiveCatchUpRedispatchIntervalSeconds = 1f;
     private const float WorseningDistanceThresholdMeters = 1.5f;
@@ -49,11 +49,12 @@ public static class CustomFollowerMovementDispatchPolicy
             && state.LastIntent == navigationIntent
             && navigationIntent == CustomFollowerNavigationIntent.MoveToFormation
             && distanceToPlayerMeters <= StableFormationRedispatchSuppressionDistanceMeters;
+        var targetShiftIsMaterial = state.LastTargetPoint.DistanceTo(targetPoint) >= MinimumTargetShiftMeters;
+        var cadenceElapsed = now - state.LastDispatchTime >= redispatchInterval;
         var shouldDispatch = isInitialDispatch
             || state.LastIntent != navigationIntent
-            || (!suppressStableFormationRedispatch
-                && (state.LastTargetPoint.DistanceTo(targetPoint) >= MinimumTargetShiftMeters
-                    || now - state.LastDispatchTime >= redispatchInterval))
+            || targetShiftIsMaterial
+            || (!suppressStableFormationRedispatch && cadenceElapsed)
             || distanceGotWorse;
 
         var nextState = shouldDispatch
