@@ -269,12 +269,7 @@ public sealed class FollowerManagerService
 
         var existingProfile = profiles.FirstOrDefault(profile => string.Equals(profile.Aid, aid, StringComparison.Ordinal))
             ?? profileFactory.CreateEmpty(updatedMember);
-        var updatedProfile = existingProfile with
-        {
-            Nickname = updatedMember.Nickname,
-            Side = updatedMember.Side,
-            Equipment = equipmentSnapshot,
-        };
+        var updatedProfile = ApplyEquipmentSnapshotToProfile(updatedMember, existingProfile, equipmentSnapshot);
         ReplaceOrAddProfile(profiles, updatedProfile);
 
         await SaveNormalizedStateAsync(resolvedSessionId, roster, profiles);
@@ -387,7 +382,7 @@ public sealed class FollowerManagerService
                 continue;
             }
 
-            profilesToPersist.Add(BuildSavedRaidProfile(member, incoming));
+            profilesToPersist.Add(BuildSavedRaidProfile(member, incoming, existingProfiles.GetValueOrDefault(incoming.Aid)));
         }
 
         foreach (var existing in existingProfiles.Values)
@@ -479,9 +474,58 @@ public sealed class FollowerManagerService
 
     private FollowerProfileSnapshot BuildSavedRaidProfile(
         FollowerRosterRecord member,
-        FollowerProfileSnapshot incoming)
+        FollowerProfileSnapshot incoming,
+        FollowerProfileSnapshot? existing)
     {
-        return BuildResolvedProfile(member, incoming);
+        var saved = BuildResolvedProfile(member, incoming);
+        if (saved.Equipment is not null || saved.Inventory is not null || existing is null)
+        {
+            return saved;
+        }
+
+        var existingResolved = BuildResolvedProfile(member, existing);
+        var fallbackInventory = existingResolved.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(existingResolved.Equipment);
+        var fallbackEquipment = existingResolved.Equipment ?? fallbackInventory?.ToEquipmentSnapshot();
+        if (fallbackEquipment is null && fallbackInventory is null)
+        {
+            return saved;
+        }
+
+        diagnosticsLog?.Append(
+            $"raid-save-preserve-equipment aid={member.Aid} nickname={member.Nickname} reason=incoming-equipment-missing preservedItems={fallbackInventory?.Items.Count ?? fallbackEquipment?.Items.Count ?? 0}");
+
+        return saved with
+        {
+            Equipment = fallbackEquipment,
+            Inventory = fallbackInventory,
+            InventoryItemIds = saved.InventoryItemIds.Count > 0
+                ? saved.InventoryItemIds
+                : fallbackInventory?.Items.Select(item => item.Id).ToArray()
+                    ?? fallbackEquipment?.Items.Select(item => item.Id).ToArray()
+                    ?? saved.InventoryItemIds,
+        };
+    }
+
+    internal static FollowerProfileSnapshot ApplyEquipmentSnapshotToProfile(
+        FollowerRosterRecord member,
+        FollowerProfileSnapshot existingProfile,
+        FollowerEquipmentSnapshot equipmentSnapshot)
+    {
+        var inventorySnapshot = FollowerInventoryMigrationPolicy.CreateInventorySnapshot(equipmentSnapshot)
+            ?? throw new InvalidOperationException("Equipment build did not contain a persistable inventory snapshot.");
+
+        return existingProfile with
+        {
+            Nickname = member.Nickname,
+            Side = member.Side,
+            Equipment = equipmentSnapshot,
+            Inventory = inventorySnapshot,
+            InventoryItemIds = inventorySnapshot.Items
+                .Select(item => item.Id)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray(),
+        };
     }
 
     private FollowerProfileSnapshot BuildManagedProfile(FollowerRosterRecord member, FollowerProfileSnapshot? profile)
