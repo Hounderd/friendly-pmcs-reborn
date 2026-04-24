@@ -72,7 +72,7 @@ internal sealed class DebugFollowerSpawnService : IDebugFollowerSpawnService
         };
 
         var role = ResolveRole(localPlayer.Side);
-        var profileData = new BotProfileDataClass(localPlayer.Side, role, BotDifficulty.hard, 0f, spawnParams, false);
+        var profileData = new BotProfileDataClass(localPlayer.Side, role, BotDifficulty.impossible, 0f, spawnParams, false);
         var profile = await LoadGeneratedProfileAsync(botCreator, profileData);
         plugin.LogPluginInfo(
             $"Debug spawn context: playerSide={localPlayer.Side}, role={role}, playerGroup={localPlayer.GroupId}, playerTeam={localPlayer.Profile.Info.TeamId}");

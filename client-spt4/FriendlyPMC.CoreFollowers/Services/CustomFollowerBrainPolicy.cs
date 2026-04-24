@@ -33,10 +33,7 @@ public static class CustomFollowerBrainPolicy
     {
         var combatPressureDistance = ResolveCombatPressureDistance(context);
         var shouldEscalateToCombat = context.HasActionableEnemy
-            && context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters
-            && context.DistanceToNearestActionableEnemyMeters <= FollowCombatEngagementRangeMeters
-            && (!context.IsInFollowCombatSuppressionCooldown
-                || context.DistanceToNearestActionableEnemyMeters <= FollowImmediateDefenseRangeMeters);
+            && context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters;
         var shouldMaintainCombat = context.CurrentMode == CustomFollowerBrainMode.CombatPursue
             && context.HasRecentCombatPressure
             && context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters
