@@ -17,6 +17,12 @@ public static class SainFollowerExclusionPolicy
             return false;
         }
 
+        // Allow SAIN to initialize while the bot is still in the expected-but-not-bound spawn window.
+        if (!registry.TryGetRuntimeByProfileId(profileId, out _))
+        {
+            return false;
+        }
+
         if (ShouldAllowSainCombat(registry, profileId))
         {
             return false;

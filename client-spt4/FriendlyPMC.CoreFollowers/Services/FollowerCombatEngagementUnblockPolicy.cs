@@ -28,7 +28,7 @@ public static class FollowerCombatEngagementUnblockPolicy
         float currentRequestAgeSeconds,
         bool isMoving)
     {
-        if (command is not (FollowerCommand.Follow or FollowerCommand.Combat)
+        if (command is not (FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover)
             || mode != CustomFollowerBrainMode.CombatPursue
             || FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName))
         {

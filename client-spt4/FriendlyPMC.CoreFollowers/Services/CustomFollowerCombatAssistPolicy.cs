@@ -45,7 +45,7 @@ public static class CustomFollowerCombatAssistPolicy
         var isActivationBlocked = FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName)
             || FollowerCombatRequestCleanupPolicy.IsCombatAssistRequest(currentRequestType)
             || (command == FollowerCommand.Follow && isInFollowCombatSuppressionCooldown)
-            || string.IsNullOrWhiteSpace(targetProfileId)
+            || (!haveEnemy && string.IsNullOrWhiteSpace(targetProfileId))
             || (state.LastActivationTimeSeconds > 0f
                 && now - state.LastActivationTimeSeconds < ActivationCooldownSeconds
                 && hasActiveCombatOwnership
