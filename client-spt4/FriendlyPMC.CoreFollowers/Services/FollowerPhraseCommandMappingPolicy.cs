@@ -25,6 +25,7 @@ public static class FollowerPhraseCommandMappingPolicy
             case "NeedHelp":
                 command = FollowerCommand.Regroup;
                 return true;
+            case "GoLoot":
             case "LootGeneric":
             case "LootWeapon":
             case "LootMoney":
