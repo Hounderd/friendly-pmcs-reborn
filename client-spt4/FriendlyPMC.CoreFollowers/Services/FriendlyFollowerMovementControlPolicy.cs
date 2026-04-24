@@ -69,8 +69,7 @@ public static class FriendlyFollowerMovementControlPolicy
 
         return command switch
         {
-            FollowerCommand.Follow or FollowerCommand.Regroup
-                => distanceToNearestActionableEnemyMeters <= CustomFollowerBrainPolicy.FollowCombatEngagementRangeMeters,
+            FollowerCommand.Follow or FollowerCommand.Regroup => true,
             FollowerCommand.Combat when customBrainMode == CustomFollowerBrainMode.CombatReturnToRange
                 => distanceToNearestActionableEnemyMeters <= CombatReturnImmediateThreatDistanceMeters,
             _ => false,

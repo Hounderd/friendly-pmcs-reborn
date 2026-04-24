@@ -151,7 +151,7 @@ internal sealed class RaidFollowerSpawnService
             ShallBeGroup = new ShallBeGroupParams(true, false, Math.Max(2, followerCount + 1)),
         };
 
-        var profileData = new BotProfileDataClass(localPlayer.Side, ResolveRole(localPlayer.Side), BotDifficulty.hard, 0f, spawnParams, false);
+        var profileData = new BotProfileDataClass(localPlayer.Side, ResolveRole(localPlayer.Side), BotDifficulty.impossible, 0f, spawnParams, false);
         var conditions = profileData.PrepareToLoadBackend(1).ToList();
         var botPresets = BotPresetsField.GetValue(botCreator) as BotsPresets
             ?? throw new InvalidOperationException("Bot presets are unavailable");

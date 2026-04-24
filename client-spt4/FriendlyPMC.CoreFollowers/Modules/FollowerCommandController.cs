@@ -64,7 +64,11 @@ public sealed class FollowerCommandController
     {
         foreach (var follower in registry.RuntimeFollowers)
         {
-            if (command is not (FollowerCommand.Attention or FollowerCommand.Heal or FollowerCommand.Loot))
+            if (command == FollowerCommand.Loot)
+            {
+                registry.SetActiveOrder(follower.Aid, command);
+            }
+            else if (command is not (FollowerCommand.Attention or FollowerCommand.Heal))
             {
                 registry.SetActiveOrder(follower.Aid, command);
                 if (registry.TryGetCustomBrainSession(follower.Aid, out var session))
