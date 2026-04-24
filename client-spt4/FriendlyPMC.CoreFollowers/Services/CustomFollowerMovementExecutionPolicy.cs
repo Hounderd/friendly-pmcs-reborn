@@ -53,9 +53,12 @@ public static class CustomFollowerMovementExecutionPolicy
         var formationDistance = GetIdealFormationDistance();
         var formationMinDistance = MathF.Max(settings.FollowDeadzoneMeters, formationDistance - FormationSettleSlackMeters);
         var formationMaxDistance = formationDistance + FormationSettleSlackMeters;
+        var stableHoldDistance = MathF.Max(
+            settings.FollowDeadzoneMeters,
+            FollowerCatchUpPolicy.StableFollowHoldDistanceMeters);
 
         if (distanceToPlayerMeters <= NearPlayerIdleBandMeters
-            || distanceToPlayerMeters <= settings.FollowDeadzoneMeters
+            || distanceToPlayerMeters <= stableHoldDistance
             || (distanceToPlayerMeters >= formationMinDistance && distanceToPlayerMeters <= formationMaxDistance))
         {
             return new CustomFollowerMovementExecutionPlan(

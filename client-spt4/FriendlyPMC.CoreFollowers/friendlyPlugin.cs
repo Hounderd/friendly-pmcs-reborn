@@ -43,6 +43,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     private ConfigEntry<bool>? autoSmokeFollowerProfileOnFriendHydrate;
     private ConfigEntry<bool>? enableBotStateDiagnostics;
     private ConfigEntry<bool>? enableCombatTraceDiagnostics;
+    private ConfigEntry<bool>? enablePlateDiagnostics;
     private Task? debugSpawnTask;
     private Task? raidFollowerSpawnTask;
     private FollowerPlateManager? plateManager;
@@ -74,6 +75,8 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     internal bool EnableBotStateDiagnostics => enableBotStateDiagnostics?.Value ?? false;
 
     internal bool EnableCombatTraceDiagnostics => enableCombatTraceDiagnostics?.Value ?? false;
+
+    internal bool EnablePlateDiagnostics => enablePlateDiagnostics?.Value ?? false;
 
     internal bool IsWaypointsInstalled => WaypointsPluginDetectionPolicy.IsInstalled(Chainloader.PluginInfos.Keys);
 
@@ -152,6 +155,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         autoSmokeFollowerProfileOnFriendHydrate = Config.Bind("Debug", "Auto Smoke Follower Profile On Friend Hydrate", false, Describe("Debug", "Auto Smoke Follower Profile On Friend Hydrate"));
         enableBotStateDiagnostics = Config.Bind("Debug", "Enable Bot State Diagnostics", false, Describe("Debug", "Enable Bot State Diagnostics"));
         enableCombatTraceDiagnostics = Config.Bind("Debug", "Enable Combat Trace Diagnostics", false, Describe("Debug", "Enable Combat Trace Diagnostics"));
+        enablePlateDiagnostics = Config.Bind("Debug", "Enable Plate Diagnostics", false, Describe("Debug", "Enable Plate Diagnostics"));
         if (autoSmokeFollowerProfileOnFriendHydrate.Value)
         {
             autoSmokeFollowerProfileOnFriendHydrate.Value = false;
@@ -198,6 +202,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         new BulletNearMissStimulusPatch().Enable();
         new HostileFootstepStimulusPatch().Enable();
         new HostileVoiceLineStimulusPatch().Enable();
+        new FollowerLoadingScreenRosterPatch().Enable();
         /*
         if (LootingLayerCompatibilityPatch.IsAvailable)
         {
