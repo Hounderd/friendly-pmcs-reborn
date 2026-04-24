@@ -32,6 +32,8 @@ public static class FollowerPhraseCommandMappingPolicy
             case "LootKey":
             case "LootBody":
             case "LootContainer":
+            case "LootNothing":
+            case "OnLoot":
             case "CheckHim":
                 command = FollowerCommand.Loot;
                 return true;

@@ -38,6 +38,8 @@ internal static class FollowerConfigUiMetadataCatalog
         new("Debug", "Spawn Debug Follower", "10 Debug", "Spawn Debug Follower", "One-shot debug flag that queues a local debug follower spawn.", 300, IsAdvanced: true),
         new("Debug", "Spawn Debug Follower Hotkey", "10 Debug", "Spawn Debug Follower Hotkey", "Hotkey used to request a local debug follower spawn.", 200, IsAdvanced: true),
         new("Debug", "Auto Smoke Follower Profile On Friend Hydrate", "10 Debug", "Auto Smoke Follower Profile On Friend Hydrate", "Debug probe that automatically opens one follower profile after the friends list hydrates.", 100, IsAdvanced: true),
+        new("Debug", "Enable Bot State Diagnostics", "10 Debug", "Enable Bot State Diagnostics", "Writes periodic bot brain snapshots to the BepInEx log. Leave disabled during normal raids.", 90, IsAdvanced: true),
+        new("Debug", "Enable Combat Trace Diagnostics", "10 Debug", "Enable Combat Trace Diagnostics", "Writes high-volume follower combat and SAIN protection traces. Leave disabled during normal raids.", 80, IsAdvanced: true),
     ];
 
     public static IReadOnlyList<FollowerConfigUiMetadata> GetAll() => AllEntries;

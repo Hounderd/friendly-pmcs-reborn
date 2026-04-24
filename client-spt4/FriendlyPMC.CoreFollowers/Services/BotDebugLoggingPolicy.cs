@@ -6,9 +6,9 @@ public static class BotDebugLoggingPolicy
 {
     public const float SampleIntervalSeconds = 1.0f;
 
-    public static bool ShouldSample(float now, BotDebugTimingState state)
+    public static bool ShouldSample(float now, BotDebugTimingState state, bool diagnosticsEnabled = true)
     {
-        return now >= state.NextSampleTime;
+        return diagnosticsEnabled && now >= state.NextSampleTime;
     }
 
     public static float GetNextSampleTime(float now)

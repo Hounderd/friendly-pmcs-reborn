@@ -5,7 +5,7 @@ namespace FriendlyPMC.CoreFollowers.Services;
 
 internal static class FollowerLootingRuntimeDisabler
 {
-    private const float DefaultSuppressionDurationSeconds = 300f;
+    private const float DefaultSuppressionDurationSeconds = 10f;
 
     public static FollowerLootingRuntimeDisableResult DisableForFollower(BotOwner owner, Action<string> logInfo)
     {

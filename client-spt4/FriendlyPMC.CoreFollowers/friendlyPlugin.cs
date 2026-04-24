@@ -41,6 +41,8 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     private ConfigEntry<bool>? spawnDebugFollower;
     private ConfigEntry<KeyboardShortcut>? spawnDebugFollowerHotkey;
     private ConfigEntry<bool>? autoSmokeFollowerProfileOnFriendHydrate;
+    private ConfigEntry<bool>? enableBotStateDiagnostics;
+    private ConfigEntry<bool>? enableCombatTraceDiagnostics;
     private Task? debugSpawnTask;
     private Task? raidFollowerSpawnTask;
     private FollowerPlateManager? plateManager;
@@ -68,6 +70,10 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     internal bool FallbackToLegacyPathForDebugFollowers => debugFallbackToLegacyPath?.Value ?? true;
 
     internal bool AutoSmokeFollowerProfileOnFriendHydrate => autoSmokeFollowerProfileOnFriendHydrate?.Value ?? false;
+
+    internal bool EnableBotStateDiagnostics => enableBotStateDiagnostics?.Value ?? false;
+
+    internal bool EnableCombatTraceDiagnostics => enableCombatTraceDiagnostics?.Value ?? false;
 
     internal bool IsWaypointsInstalled => WaypointsPluginDetectionPolicy.IsInstalled(Chainloader.PluginInfos.Keys);
 
@@ -144,6 +150,8 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         spawnDebugFollower = Config.Bind("Debug", "Spawn Debug Follower", false, Describe("Debug", "Spawn Debug Follower"));
         spawnDebugFollowerHotkey = Config.Bind("Debug", "Spawn Debug Follower Hotkey", new KeyboardShortcut(KeyCode.F9), Describe("Debug", "Spawn Debug Follower Hotkey"));
         autoSmokeFollowerProfileOnFriendHydrate = Config.Bind("Debug", "Auto Smoke Follower Profile On Friend Hydrate", false, Describe("Debug", "Auto Smoke Follower Profile On Friend Hydrate"));
+        enableBotStateDiagnostics = Config.Bind("Debug", "Enable Bot State Diagnostics", false, Describe("Debug", "Enable Bot State Diagnostics"));
+        enableCombatTraceDiagnostics = Config.Bind("Debug", "Enable Combat Trace Diagnostics", false, Describe("Debug", "Enable Combat Trace Diagnostics"));
         if (autoSmokeFollowerProfileOnFriendHydrate.Value)
         {
             autoSmokeFollowerProfileOnFriendHydrate.Value = false;
@@ -210,7 +218,10 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         TryLogCommand(holdKey, "F7");
         TryLogCommand(combatKey, "F8");
         TryLogCommand(healKey, "F10");
-        DebugLogger.Tick();
+        if (EnableBotStateDiagnostics)
+        {
+            DebugLogger.Tick();
+        }
     }
 
     private void TryQueueDebugSpawn()
