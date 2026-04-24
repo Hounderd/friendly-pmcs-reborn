@@ -4,7 +4,7 @@ public static class FollowerSuppressionEngagementPolicy
 {
     public const float DefaultBlindThreatAttackCloseDistanceMeters = 30f;
     public const float DefaultVisibleThreatSuppressionBreakDistanceMeters = 18f;
-    public const float DefaultShootableThreatSuppressionBreakDistanceMeters = 25f;
+    public const float DefaultShootableThreatSuppressionBreakDistanceMeters = 40f;
 
     public static bool ShouldUseAttackCloseWithoutSight(
         bool targetVisible,

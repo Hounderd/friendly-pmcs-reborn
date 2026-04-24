@@ -2045,7 +2045,9 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
         {
             blockReasons.Add("noTarget");
         }
-        else if (string.IsNullOrWhiteSpace(targetProfileId))
+        else if (string.IsNullOrWhiteSpace(targetProfileId)
+                 && !targetVisible
+                 && !canShoot)
         {
             blockReasons.Add("goalMissing");
         }
