@@ -43,7 +43,7 @@ public sealed class FollowerModeSettings
     public float CombatMaxRangeMeters { get; }
 
     public float EffectiveCatchUpDistanceMeters =>
-        MathF.Max(FollowDeadzoneMeters, MathF.Min(FollowLeashDistanceMeters, CatchUpDistanceMeters));
+        MathF.Max(FollowDeadzoneMeters, CatchUpDistanceMeters);
 
     private static float NormalizeDistance(float value, float fallback)
     {

@@ -7,6 +7,7 @@ public static class SainFollowerAccuracyPolicy
     private const float FollowerPrecisionSpeedCoef = 1.25f;
     private const float FollowerVisibleDistanceCoef = 1.25f;
     private const float FollowerHearingDistanceCoef = 1.2f;
+    private const float FollowerSainDifficultyModifier = 1.75f;
 
     public static float ResolveScatteringCoef(float currentValue)
     {
@@ -31,5 +32,10 @@ public static class SainFollowerAccuracyPolicy
     public static float ResolveHearingDistanceCoef(float currentValue)
     {
         return MathF.Max(currentValue, FollowerHearingDistanceCoef);
+    }
+
+    public static float ResolveSainDifficultyModifier(float currentValue)
+    {
+        return MathF.Max(currentValue, FollowerSainDifficultyModifier);
     }
 }

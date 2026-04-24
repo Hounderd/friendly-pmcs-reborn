@@ -49,9 +49,10 @@ public static class FollowerOrderLayerPolicy
     {
         return (command, intent) switch
         {
-            (_, FollowerMovementIntent.CatchUpToPlayer) => new FollowerMovementOffset(0f, 0f, 0f),
+            (FollowerCommand.Follow, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex),
             (FollowerCommand.Combat, FollowerMovementIntent.ReturnToCombatRange) => new FollowerMovementOffset(0f, 0f, -10f),
             (FollowerCommand.Regroup, _) => new FollowerMovementOffset(0f, 0f, 0f),
+            (_, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex),
             _ => ResolveFormationOffset(formationSlotIndex),
         };
     }

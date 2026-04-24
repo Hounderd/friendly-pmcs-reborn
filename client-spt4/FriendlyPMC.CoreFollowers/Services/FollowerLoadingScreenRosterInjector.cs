@@ -35,9 +35,12 @@ internal static class FollowerLoadingScreenRosterInjector
                 return;
             }
 
-            var root = new GameObject(RosterObjectName, typeof(RectTransform), typeof(VerticalLayoutGroup));
+            var root = new GameObject(RosterObjectName, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             root.transform.SetParent(container, worldPositionStays: false);
             root.transform.SetAsLastSibling();
+
+            var background = root.GetComponent<Image>();
+            background.color = new Color32(5, 9, 8, 165);
 
             var layout = root.GetComponent<VerticalLayoutGroup>();
             layout.childControlHeight = true;
@@ -45,6 +48,11 @@ internal static class FollowerLoadingScreenRosterInjector
             layout.childForceExpandHeight = false;
             layout.childForceExpandWidth = false;
             layout.spacing = 2f;
+            layout.padding = new RectOffset(8, 10, 5, 5);
+
+            var fitter = root.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             foreach (var line in lines)
             {
@@ -88,8 +96,9 @@ internal static class FollowerLoadingScreenRosterInjector
         lineText.font = templateText.font;
         lineText.fontSize = templateText.fontSize;
         lineText.fontStyle = templateText.fontStyle;
-        lineText.color = templateText.color;
+        lineText.color = new Color32(210, 210, 200, 255);
         lineText.alignment = templateText.alignment;
+        lineText.richText = true;
         lineText.text = text;
     }
 }

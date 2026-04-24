@@ -56,10 +56,12 @@ internal sealed class FriendlyFollowerMovementLogic : CustomLogic
                 customBrainSession.CurrentDebugState.NavigationIntent,
                 customDistanceToPlayer,
                 plugin.ModeSettings);
+            var formationSlotIndex = ResolveFormationSlotIndex(plugin, BotOwner.ProfileId);
             var desiredTargetPoint = CustomFollowerMovementTargetPointPolicy.Resolve(
                 requester,
                 customBrainSession.CurrentDebugState.Command,
-                plan.MovementIntent);
+                plan.MovementIntent,
+                formationSlotIndex);
             var frameDecision = CustomFollowerMovementFramePolicy.Evaluate(
                 Time.time,
                 customMovementFrameState,
@@ -155,6 +157,18 @@ internal sealed class FriendlyFollowerMovementLogic : CustomLogic
 
         previousMovementIntent = movementIntent;
         previousMovementSample = currentSample;
+    }
+
+    private static int ResolveFormationSlotIndex(FriendlyPmcCoreFollowersPlugin plugin, string profileId)
+    {
+        var orderedProfileIds = plugin.Registry.RuntimeFollowers
+            .Where(follower => follower.IsOperational)
+            .OrderBy(follower => follower.Aid, StringComparer.Ordinal)
+            .Select(follower => follower.RuntimeProfileId)
+            .ToArray();
+        var index = Array.IndexOf(orderedProfileIds, profileId);
+
+        return Math.Max(0, index);
     }
 }
 #else

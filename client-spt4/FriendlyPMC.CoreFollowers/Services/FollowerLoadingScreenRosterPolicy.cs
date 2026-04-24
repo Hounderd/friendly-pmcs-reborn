@@ -18,6 +18,6 @@ public static class FollowerLoadingScreenRosterPolicy
             ? "PMC"
             : follower.Side.Trim().ToUpperInvariant();
 
-        return $"    {side} {follower.Nickname.Trim()}";
+        return $"<color=#8f9b8e>+ {side}</color> <color=#d2d2c8>{follower.Nickname.Trim()}</color>";
     }
 }
