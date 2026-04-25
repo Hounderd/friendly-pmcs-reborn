@@ -35,6 +35,11 @@ public static class FollowerMainMenuRosterLayoutPolicy
         return MathF.Min(templateFontSize, LoadingRosterFontSize);
     }
 
+    public static bool ShouldInject(bool hasReliableFooterAnchor)
+    {
+        return hasReliableFooterAnchor;
+    }
+
     public static FollowerMainMenuRosterPosition ResolvePositionFromVersionText(float versionTextX, float versionTextY)
     {
         return new FollowerMainMenuRosterPosition(

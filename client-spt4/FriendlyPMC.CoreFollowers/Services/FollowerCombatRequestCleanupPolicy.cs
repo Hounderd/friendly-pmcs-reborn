@@ -21,7 +21,8 @@ public static class FollowerCombatRequestCleanupPolicy
                 return default;
             }
 
-            var shouldStopSuppression = (command == FollowerCommand.Follow && isInFollowCombatSuppressionCooldown)
+            var shouldStopSuppression = command == FollowerCommand.Follow
+                || isInFollowCombatSuppressionCooldown
                 || !hasActionableEnemy;
             return new FollowerCombatRequestCleanupDecision(shouldStopSuppression);
         }

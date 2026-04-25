@@ -9,6 +9,7 @@ public readonly record struct FriendlyFollowerMovementControlDecision(
 public static class FriendlyFollowerMovementControlPolicy
 {
     private const float CombatReturnImmediateThreatDistanceMeters = 30f;
+    private const float FollowCatchUpImmediateThreatDistanceMeters = 12f;
 
     public static FriendlyFollowerMovementControlDecision Evaluate(
         DebugSpawnFollowerControlPath? controlPath,
@@ -76,6 +77,9 @@ public static class FriendlyFollowerMovementControlPolicy
 
         return command switch
         {
+            FollowerCommand.Follow or FollowerCommand.Regroup
+                when customBrainMode == CustomFollowerBrainMode.FollowCatchUp
+                => distanceToNearestActionableEnemyMeters <= FollowCatchUpImmediateThreatDistanceMeters,
             FollowerCommand.Follow or FollowerCommand.Regroup => true,
             FollowerCommand.Combat when customBrainMode == CustomFollowerBrainMode.CombatReturnToRange
                 => distanceToNearestActionableEnemyMeters <= CombatReturnImmediateThreatDistanceMeters,

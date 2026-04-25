@@ -20,24 +20,22 @@ internal static class FollowerMainMenuRosterInjector
             }
 
             var versionText = TryResolveVersionText(screen);
-            var profileText = TryResolveProfileNameText(screen, profile);
-            var buttonText = TryResolveButtonText(screen, "_playerButton");
-            var anchorText = versionText ?? profileText ?? buttonText ?? TryResolveAnyMenuText(screen);
-            if (anchorText is null)
+            if (!FollowerMainMenuRosterLayoutPolicy.ShouldInject(versionText is not null))
             {
-                logInfo?.Invoke("Follower main menu roster skipped: no text template found");
+                logInfo?.Invoke("Follower main menu roster skipped: footer version anchor unavailable");
                 return;
             }
 
-            var container = versionText?.transform.parent ?? (screen as Component)?.transform ?? anchorText.transform.parent;
+            var screenRoot = (screen as Component)?.transform;
+            var container = screenRoot ?? versionText!.transform.parent;
             if (container is null)
             {
                 logInfo?.Invoke("Follower main menu roster skipped: no UI container found");
                 return;
             }
 
-            var fontSize = FollowerMainMenuRosterLayoutPolicy.ResolveFollowerFontSize(anchorText.fontSize);
-            var injected = FollowerRosterUiInjector.TryInject(container, anchorText, followers, logInfo, "main-menu", fontSize);
+            var fontSize = FollowerMainMenuRosterLayoutPolicy.ResolveFollowerFontSize(versionText!.fontSize);
+            var injected = FollowerRosterUiInjector.TryInject(container, versionText, followers, logInfo, "main-menu", fontSize);
             if (injected > 0)
             {
                 PositionRootLevelRoster(container, versionText);
@@ -49,19 +47,6 @@ internal static class FollowerMainMenuRosterInjector
         }
     }
 
-    private static TextMeshProUGUI? TryResolveProfileNameText(object screen, Profile profile)
-    {
-        var nickname = profile.Info?.Nickname;
-        if (string.IsNullOrWhiteSpace(nickname))
-        {
-            return null;
-        }
-
-        return (screen as Component)?
-            .GetComponentsInChildren<TextMeshProUGUI>(includeInactive: true)
-            .FirstOrDefault(text => text.text.IndexOf(nickname, StringComparison.OrdinalIgnoreCase) >= 0);
-    }
-
     private static TextMeshProUGUI? TryResolveVersionText(object screen)
     {
         return (screen as Component)?
@@ -70,19 +55,6 @@ internal static class FollowerMainMenuRosterInjector
                 !string.IsNullOrWhiteSpace(text.text)
                 && text.text.IndexOf("SPT", StringComparison.OrdinalIgnoreCase) >= 0
                 && text.text.IndexOf("SAIN", StringComparison.OrdinalIgnoreCase) >= 0);
-    }
-
-    private static TextMeshProUGUI? TryResolveButtonText(object screen, string fieldName)
-    {
-        var button = AccessTools.Field(screen.GetType(), fieldName)?.GetValue(screen) as Component;
-        return button?.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
-    }
-
-    private static TextMeshProUGUI? TryResolveAnyMenuText(object screen)
-    {
-        return (screen as Component)?
-            .GetComponentsInChildren<TextMeshProUGUI>(includeInactive: true)
-            .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text.text));
     }
 
     private static void PositionRootLevelRoster(Transform container, TextMeshProUGUI? versionText)
@@ -103,11 +75,18 @@ internal static class FollowerMainMenuRosterInjector
         rect.anchorMin = new Vector2(layout.AnchorMinX, layout.AnchorMinY);
         rect.anchorMax = new Vector2(layout.AnchorMaxX, layout.AnchorMaxY);
         rect.pivot = new Vector2(layout.PivotX, layout.PivotY);
-        if (versionText?.rectTransform is { } versionRect)
+        if (versionText?.rectTransform is { } versionRect
+            && container is RectTransform containerRect)
         {
+            var parentCorners = new Vector3[4];
+            var versionCorners = new Vector3[4];
+            containerRect.GetWorldCorners(parentCorners);
+            versionRect.GetWorldCorners(versionCorners);
+            var parentBottomLeft = containerRect.InverseTransformPoint(parentCorners[0]);
+            var versionBottomLeft = containerRect.InverseTransformPoint(versionCorners[0]);
             var position = FollowerMainMenuRosterLayoutPolicy.ResolvePositionFromVersionText(
-                versionRect.anchoredPosition.x,
-                versionRect.anchoredPosition.y);
+                versionBottomLeft.x - parentBottomLeft.x,
+                versionBottomLeft.y - parentBottomLeft.y);
             rect.anchoredPosition = new Vector2(position.X, position.Y);
             return;
         }

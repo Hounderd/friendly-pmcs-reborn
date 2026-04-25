@@ -47,23 +47,35 @@ public static class FollowerOrderLayerPolicy
         FollowerMovementIntent intent,
         int formationSlotIndex)
     {
+        return GetOffset(command, intent, formationSlotIndex, FollowerFormationSpacingProfile.Outdoor);
+    }
+
+    public static FollowerMovementOffset GetOffset(
+        FollowerCommand command,
+        FollowerMovementIntent intent,
+        int formationSlotIndex,
+        FollowerFormationSpacingProfile spacingProfile)
+    {
         return (command, intent) switch
         {
-            (FollowerCommand.Follow, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex),
+            (FollowerCommand.Follow, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex, spacingProfile),
             (FollowerCommand.Combat, FollowerMovementIntent.ReturnToCombatRange) => new FollowerMovementOffset(0f, 0f, -10f),
             (FollowerCommand.Regroup, _) => new FollowerMovementOffset(0f, 0f, 0f),
-            (_, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex),
-            _ => ResolveFormationOffset(formationSlotIndex),
+            (_, FollowerMovementIntent.CatchUpToPlayer) => ResolveFormationOffset(formationSlotIndex, spacingProfile),
+            _ => ResolveFormationOffset(formationSlotIndex, spacingProfile),
         };
     }
 
-    private static FollowerMovementOffset ResolveFormationOffset(int formationSlotIndex)
+    private static FollowerMovementOffset ResolveFormationOffset(
+        int formationSlotIndex,
+        FollowerFormationSpacingProfile spacingProfile)
     {
         var normalizedSlot = Math.Max(0, formationSlotIndex);
         var row = normalizedSlot / 2;
         var side = normalizedSlot % 2 == 0 ? 1f : -1f;
-        var lateral = 4.5f + (row * 2.5f);
-        var rear = -7f - (row * 3f);
+        var isIndoor = spacingProfile == FollowerFormationSpacingProfile.Indoor;
+        var lateral = (isIndoor ? 2.25f : 4.5f) + (row * (isIndoor ? 1.25f : 2.5f));
+        var rear = (isIndoor ? -3.5f : -7f) - (row * (isIndoor ? 1.5f : 3f));
 
         return new FollowerMovementOffset(side * lateral, 0f, rear);
     }
