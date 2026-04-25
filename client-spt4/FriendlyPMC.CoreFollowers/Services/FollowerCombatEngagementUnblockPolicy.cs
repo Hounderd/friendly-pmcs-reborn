@@ -12,6 +12,7 @@ public static class FollowerCombatEngagementUnblockPolicy
     public const float DefaultVisibleThreatBreakDistanceMeters = 18f;
     public const float DefaultUnderFireThreatBreakDistanceMeters = 35f;
     public const float DefaultAttackCloseStallBreakAgeSeconds = 2.5f;
+    public const float DefaultVisibleUnshootableAttackCloseStallBreakAgeSeconds = 5f;
     public const float DefaultTakeCoverStallBreakAgeSeconds = 3.5f;
 
     public static FollowerCombatEngagementUnblockDecision Evaluate(
@@ -29,8 +30,7 @@ public static class FollowerCombatEngagementUnblockPolicy
         bool isMoving)
     {
         if (command is not (FollowerCommand.Follow or FollowerCommand.Combat or FollowerCommand.TakeCover)
-            || mode != CustomFollowerBrainMode.CombatPursue
-            || FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName))
+            || mode != CustomFollowerBrainMode.CombatPursue)
         {
             return default;
         }
@@ -47,19 +47,28 @@ public static class FollowerCombatEngagementUnblockPolicy
             return default;
         }
 
-        var shouldStopCombatAssistRequest = FollowerCombatRequestCleanupPolicy.IsSuppressionRequest(currentRequestType)
-            || (FollowerCombatRequestCleanupPolicy.IsAttackCloseRequest(currentRequestType)
-                && targetVisible
-                && canShoot
-                && !isMoving
-                && currentRequestAgeSeconds >= DefaultAttackCloseStallBreakAgeSeconds)
-            || (FollowerCombatRequestCleanupPolicy.IsTakeCoverRequest(currentRequestType)
+        var isCombatLayer = FollowerCombatLayerPolicy.IsCombatLayer(activeLayerName);
+        var isStaleShootableAttackClose = FollowerCombatRequestCleanupPolicy.IsAttackCloseRequest(currentRequestType)
+            && targetVisible
+            && canShoot
+            && !isMoving
+            && currentRequestAgeSeconds >= DefaultAttackCloseStallBreakAgeSeconds;
+        var isStaleVisibleUnshootableAttackClose = FollowerCombatRequestCleanupPolicy.IsAttackCloseRequest(currentRequestType)
+            && hasVisibleUnshootableThreat
+            && !isMoving
+            && currentRequestAgeSeconds >= DefaultVisibleUnshootableAttackCloseStallBreakAgeSeconds;
+
+        var shouldStopCombatAssistRequest = (!isCombatLayer && FollowerCombatRequestCleanupPolicy.IsSuppressionRequest(currentRequestType))
+            || isStaleShootableAttackClose
+            || isStaleVisibleUnshootableAttackClose
+            || (!isCombatLayer
+                && FollowerCombatRequestCleanupPolicy.IsTakeCoverRequest(currentRequestType)
                 && hasVisibleUnshootableThreat
                 && !isMoving
                 && currentRequestAgeSeconds >= DefaultTakeCoverStallBreakAgeSeconds);
 
         return new FollowerCombatEngagementUnblockDecision(
-            ShouldInterruptHealing: isHealing,
+            ShouldInterruptHealing: isHealing && !isCombatLayer,
             ShouldStopCombatAssistRequest: shouldStopCombatAssistRequest,
             ShouldReclaimFromLooting: FollowerCombatLayerPolicy.IsLootingLayer(activeLayerName));
     }

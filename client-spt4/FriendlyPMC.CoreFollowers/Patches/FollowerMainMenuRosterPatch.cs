@@ -28,16 +28,32 @@ public sealed class FollowerMainMenuRosterPatch : ModulePatch
             return;
         }
 
+        var followers = ResolveFollowers(plugin);
+        plugin.LogPluginInfo($"Follower main menu roster resolved: count={followers.Count}");
+
         FollowerMainMenuRosterInjector.TryInject(
             __instance,
             profile,
-            ResolveFollowers(plugin),
+            followers,
             plugin.LogPluginInfo,
             plugin.LogPluginError);
     }
 
     private static IReadOnlyList<FollowerSnapshotDto> ResolveFollowers(FriendlyPmcCoreFollowersPlugin plugin)
     {
+        try
+        {
+            var persistedRoster = plugin.ApiClient.GetFollowerManagerRosterAsync().GetAwaiter().GetResult();
+            if (persistedRoster.Count > 0)
+            {
+                return persistedRoster;
+            }
+        }
+        catch (Exception ex)
+        {
+            plugin.LogPluginError("Failed to load follower manager roster for main menu", ex);
+        }
+
         return plugin.Registry.Followers
             .Where(follower => !string.IsNullOrWhiteSpace(follower.Nickname))
             .ToArray();
