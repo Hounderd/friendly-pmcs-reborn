@@ -29,13 +29,30 @@ internal static class CustomFollowerMovementTargetPointPolicy
 
         forward.Normalize();
         var right = Vector3.Cross(Vector3.up, forward).normalized;
-        var offset = FollowerOrderLayerPolicy.GetOffset(command, movementIntent, formationSlotIndex);
+        var spacingProfile = ResolveSpacingProfile(requester);
+        var offset = FollowerOrderLayerPolicy.GetOffset(command, movementIntent, formationSlotIndex, spacingProfile);
         var target = playerPosition
             + (right * offset.X)
             + (Vector3.up * offset.Y)
             + (forward * offset.Z);
 
         return new BotDebugWorldPoint(target.x, target.y, target.z);
+    }
+
+    private static FollowerFormationSpacingProfile ResolveSpacingProfile(Player requester)
+    {
+        var origin = requester.Transform.position + (Vector3.up * 0.5f);
+        var hasOverheadHit = Physics.Raycast(
+            origin,
+            Vector3.up,
+            out var hit,
+            FollowerEnvironmentClassifierPolicy.IndoorCeilingProbeMeters,
+            ~0,
+            QueryTriggerInteraction.Ignore);
+
+        return FollowerEnvironmentClassifierPolicy.Resolve(
+            hasOverheadHit,
+            hasOverheadHit ? hit.distance : float.MaxValue);
     }
 }
 #else
