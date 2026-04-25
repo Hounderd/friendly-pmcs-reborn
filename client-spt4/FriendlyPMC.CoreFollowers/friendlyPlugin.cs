@@ -20,9 +20,6 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     public const string PluginName = "FriendlyPMC.CoreFollowers";
     public const string PluginVersion = FriendlyPmcBuildVersion.Value;
 
-    private ConfigEntry<KeyboardShortcut>? followKey;
-    private ConfigEntry<KeyboardShortcut>? holdKey;
-    private ConfigEntry<KeyboardShortcut>? combatKey;
     private ConfigEntry<KeyboardShortcut>? healKey;
     private ConfigEntry<float>? followLeashDistance;
     private ConfigEntry<float>? holdRadiusDistance;
@@ -131,11 +128,8 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         RaidFollowerSpawnService = new RaidFollowerSpawnService();
         DebugLogger = new BotDebugLogger(Registry, Logger.LogInfo);
 
-        followKey = Config.Bind("Controls", "Follow", new KeyboardShortcut(KeyCode.F6), Describe("Controls", "Follow"));
-        holdKey = Config.Bind("Controls", "Hold", new KeyboardShortcut(KeyCode.F7), Describe("Controls", "Hold"));
-        combatKey = Config.Bind("Controls", "Combat", new KeyboardShortcut(KeyCode.F8), Describe("Controls", "Combat"));
         healKey = Config.Bind("Controls", "Heal", new KeyboardShortcut(KeyCode.F10), Describe("Controls", "Heal"));
-        CommandController = new FollowerCommandController(Registry, new FollowerCommandBindings("F6", "F7", "F8", "F10"));
+        CommandController = new FollowerCommandController(Registry, FollowerCommandBindings.CreateHealOnly("F10"));
         followLeashDistance = Config.Bind("Follower", "Follow Leash Distance", FollowerModeSettings.DefaultFollowLeashDistanceMeters, Describe("Follower", "Follow Leash Distance"));
         holdRadiusDistance = Config.Bind("Follower", "Hold Radius Distance", FollowerModeSettings.DefaultHoldRadiusMeters, Describe("Follower", "Hold Radius Distance"));
         followDeadzoneDistance = Config.Bind("Follower", "Follow Deadzone Distance", FollowerModeSettings.DefaultFollowDeadzoneMeters, Describe("Follower", "Follow Deadzone Distance"));
@@ -220,9 +214,6 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     private void Update()
     {
         TryQueueDebugSpawn();
-        TryLogCommand(followKey, "F6");
-        TryLogCommand(holdKey, "F7");
-        TryLogCommand(combatKey, "F8");
         TryLogCommand(healKey, "F10");
         if (EnableBotStateDiagnostics)
         {
@@ -350,7 +341,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin
         ApiClient = new FollowerApiClient();
         Registry = new FollowerRegistry();
         RaidController = new FollowerRaidController(ApiClient, Registry, _ => { });
-        CommandController = new FollowerCommandController(Registry, new FollowerCommandBindings("F6", "F7", "F8", "F10"));
+        CommandController = new FollowerCommandController(Registry, FollowerCommandBindings.CreateHealOnly("F10"));
         DebugSpawnController = new DebugFollowerSpawnController(new DebugFollowerSpawnService());
         DebugLogger = new BotDebugLogger(Registry, _ => { });
     }

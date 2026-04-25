@@ -13,9 +13,6 @@ internal static class FollowerConfigUiMetadataCatalog
 {
     private static readonly IReadOnlyList<FollowerConfigUiMetadata> AllEntries =
     [
-        new("Controls", "Follow", "1 Controls", "Follow Hotkey", "Hotkey used to issue the Follow order to managed followers.", 1600),
-        new("Controls", "Hold", "1 Controls", "Hold Hotkey", "Hotkey used to issue the Hold order to managed followers.", 1500),
-        new("Controls", "Combat", "1 Controls", "Combat Hotkey", "Hotkey used to issue the Combat order to managed followers.", 1400),
         new("Controls", "Heal", "1 Controls", "Heal Hotkey", "Hotkey used to issue the Heal order to managed followers.", 1300),
 
         new("Follower", "Follow Leash Distance", "2 Follower Behavior", "Follow Leash Distance", "Maximum distance followers should drift from the player before returning to escort position.", 1200),

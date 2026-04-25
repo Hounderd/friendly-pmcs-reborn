@@ -66,7 +66,10 @@ public sealed class FollowerCommandController
         {
             if (command == FollowerCommand.Loot)
             {
-                registry.SetActiveOrder(follower.Aid, command);
+                if (!registry.TryGetActiveOrder(follower.Aid, out _))
+                {
+                    registry.SetActiveOrder(follower.Aid, FollowerCommand.Follow);
+                }
             }
             else if (command is not (FollowerCommand.Attention or FollowerCommand.Heal))
             {

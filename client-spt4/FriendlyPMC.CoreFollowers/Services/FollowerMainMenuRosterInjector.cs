@@ -27,17 +27,16 @@ internal static class FollowerMainMenuRosterInjector
                 return;
             }
 
-            var container = profileText is not null || buttonText is not null
-                ? anchorText.transform.parent
-                : (screen as Component)?.transform ?? anchorText.transform.parent;
+            var container = (screen as Component)?.transform ?? anchorText.transform.parent;
             if (container is null)
             {
                 logInfo?.Invoke("Follower main menu roster skipped: no UI container found");
                 return;
             }
 
-            var injected = FollowerRosterUiInjector.TryInject(container, anchorText, followers, logInfo, "main-menu");
-            if (injected > 0 && container == (screen as Component)?.transform)
+            var fontSize = FollowerMainMenuRosterLayoutPolicy.ResolveFollowerFontSize(anchorText.fontSize);
+            var injected = FollowerRosterUiInjector.TryInject(container, anchorText, followers, logInfo, "main-menu", fontSize);
+            if (injected > 0)
             {
                 PositionRootLevelRoster(container);
             }
@@ -88,10 +87,11 @@ internal static class FollowerMainMenuRosterInjector
             return;
         }
 
-        rect.anchorMin = new Vector2(0f, 0f);
-        rect.anchorMax = new Vector2(0f, 0f);
-        rect.pivot = new Vector2(0f, 0f);
-        rect.anchoredPosition = new Vector2(265f, 112f);
+        var layout = FollowerMainMenuRosterLayoutPolicy.Resolve();
+        rect.anchorMin = new Vector2(layout.AnchorMinX, layout.AnchorMinY);
+        rect.anchorMax = new Vector2(layout.AnchorMaxX, layout.AnchorMaxY);
+        rect.pivot = new Vector2(layout.PivotX, layout.PivotY);
+        rect.anchoredPosition = new Vector2(layout.PositionX, layout.PositionY);
     }
 }
 #else

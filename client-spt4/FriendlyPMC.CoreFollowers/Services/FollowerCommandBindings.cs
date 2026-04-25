@@ -21,6 +21,20 @@ public sealed class FollowerCommandBindings
         }
     }
 
+    private FollowerCommandBindings(string? healKey)
+    {
+        commandByKey = new Dictionary<string, FollowerCommand>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(healKey))
+        {
+            commandByKey[healKey] = FollowerCommand.Heal;
+        }
+    }
+
+    public static FollowerCommandBindings CreateHealOnly(string? healKey)
+    {
+        return new FollowerCommandBindings(healKey);
+    }
+
     public FollowerCommand? ResolvePressedCommand(string keyPressed)
     {
         if (commandByKey.TryGetValue(keyPressed, out var command))
