@@ -203,6 +203,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         new HostileFootstepStimulusPatch().Enable();
         new HostileVoiceLineStimulusPatch().Enable();
         new FollowerLoadingScreenRosterPatch().Enable();
+        new FollowerMainMenuRosterPatch().Enable();
         /*
         if (LootingLayerCompatibilityPatch.IsAvailable)
         {

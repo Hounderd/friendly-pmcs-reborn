@@ -12,7 +12,7 @@ public enum FollowerMovementIntent
 
 public static class FollowerCatchUpPolicy
 {
-    public const float StableFollowHoldDistanceMeters = 12f;
+    public const float StableFollowHoldDistanceMeters = 15f;
 
     public static FollowerMovementIntent ResolveMovementIntent(
         FollowerCommand command,

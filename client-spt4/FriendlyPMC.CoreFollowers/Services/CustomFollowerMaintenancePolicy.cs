@@ -31,6 +31,10 @@ public static class CustomFollowerMaintenancePolicy
                 SuppressLegacyMaintenance: true,
                 NavigationIntent: CustomFollowerNavigationIntent.ReturnToCombatRange,
                 ShouldRefreshHold: false),
+            CustomFollowerBrainMode.CombatPursue => new CustomFollowerMaintenanceDirective(
+                SuppressLegacyMaintenance: true,
+                NavigationIntent: null,
+                ShouldRefreshHold: false),
             CustomFollowerBrainMode.RecoverNavigation => new CustomFollowerMaintenanceDirective(
                 SuppressLegacyMaintenance: true,
                 NavigationIntent: CustomFollowerNavigationIntent.RepathAndRecover,

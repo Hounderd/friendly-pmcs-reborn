@@ -35,31 +35,7 @@ internal static class FollowerLoadingScreenRosterInjector
                 return;
             }
 
-            var root = new GameObject(RosterObjectName, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-            root.transform.SetParent(container, worldPositionStays: false);
-            root.transform.SetAsLastSibling();
-
-            var background = root.GetComponent<Image>();
-            background.color = new Color32(5, 9, 8, 165);
-
-            var layout = root.GetComponent<VerticalLayoutGroup>();
-            layout.childControlHeight = true;
-            layout.childControlWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.spacing = 2f;
-            layout.padding = new RectOffset(8, 10, 5, 5);
-
-            var fitter = root.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            foreach (var line in lines)
-            {
-                CreateLine(root.transform, templateText, line);
-            }
-
-            logInfo?.Invoke($"Injected follower loading roster: count={lines.Count}");
+            FollowerRosterUiInjector.TryInject(container, templateText, followers, logInfo, "loading");
         }
         catch (Exception ex)
         {
@@ -87,20 +63,6 @@ internal static class FollowerLoadingScreenRosterInjector
         }
     }
 
-    private static void CreateLine(Transform parent, TextMeshProUGUI templateText, string text)
-    {
-        var lineObject = new GameObject("FriendlyFollowerLoadingRosterLine", typeof(RectTransform), typeof(TextMeshProUGUI));
-        lineObject.transform.SetParent(parent, worldPositionStays: false);
-
-        var lineText = lineObject.GetComponent<TextMeshProUGUI>();
-        lineText.font = templateText.font;
-        lineText.fontSize = templateText.fontSize;
-        lineText.fontStyle = templateText.fontStyle;
-        lineText.color = new Color32(210, 210, 200, 255);
-        lineText.alignment = templateText.alignment;
-        lineText.richText = true;
-        lineText.text = text;
-    }
 }
 #else
 using FriendlyPMC.CoreFollowers.Models;

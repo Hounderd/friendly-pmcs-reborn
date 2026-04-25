@@ -409,7 +409,7 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
 
         if (directive.NavigationIntent.HasValue && movementControlDecision.YieldedToCombatPressure)
         {
-            return false;
+            return true;
         }
 
         if (shouldBreakCustomCombatStall)
