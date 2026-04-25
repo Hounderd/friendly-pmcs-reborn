@@ -2,11 +2,11 @@ namespace FriendlyPMC.CoreFollowers.Services;
 
 public static class SainFollowerAccuracyPolicy
 {
-    private const float FollowerScatteringCoef = 0.55f;
-    private const float FollowerAccuracySpeedCoef = 0.65f;
-    private const float FollowerPrecisionSpeedCoef = 1.25f;
-    private const float FollowerVisibleDistanceCoef = 1.25f;
-    private const float FollowerHearingDistanceCoef = 1.2f;
+    private const float FollowerScatteringCoef = 0.35f;
+    private const float FollowerAccuracySpeedCoef = 0.45f;
+    private const float FollowerPrecisionSpeedCoef = 1.5f;
+    private const float FollowerVisibleDistanceCoef = 1.35f;
+    private const float FollowerHearingDistanceCoef = 1.3f;
     private const float FollowerSainDifficultyModifier = 1.75f;
 
     public static float ResolveScatteringCoef(float currentValue)

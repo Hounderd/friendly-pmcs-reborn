@@ -11,6 +11,8 @@ public interface IFollowerApiClient
 {
     Task<IReadOnlyList<FollowerSnapshotDto>> GetActiveFollowersAsync();
 
+    Task<IReadOnlyList<FollowerSnapshotDto>> GetFollowerManagerRosterAsync();
+
     Task RegisterRecruitAsync(FollowerSnapshotDto follower);
 
     Task SaveRaidProgressAsync(FollowerRaidProgressPayload payload);
@@ -30,6 +32,7 @@ public interface IRequestDispatcher
 public sealed class FollowerApiClient : IFollowerApiClient
 {
     private const string ActiveFollowersRoute = "/friendlypmc/corefollowers/active";
+    private const string ManagerRosterRoute = "/friendlypmc/corefollowers/manager/roster";
     private const string RegisterRecruitRoute = "/friendlypmc/corefollowers/recruit";
     private const string SaveRaidProgressRoute = "/friendlypmc/corefollowers/raid-progress";
     private const string GetFollowerInventoryRoute = "/friendlypmc/corefollowers/inventory/get";
@@ -114,6 +117,34 @@ public sealed class FollowerApiClient : IFollowerApiClient
                 new FollowerRosterRecordDto(follower.Aid, follower.Nickname, follower.Side)));
         requestDispatcher.PostJson(RegisterRecruitRoute, body);
         return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<FollowerSnapshotDto>> GetFollowerManagerRosterAsync()
+    {
+        var json = requestDispatcher.GetJson(ManagerRosterRoute);
+        var response = JsonConvert.DeserializeObject<GetFollowerManagerRosterResponseDto>(json);
+        if (response?.Members is null)
+        {
+            response = JsonConvert.DeserializeObject<WrappedResponseDto<GetFollowerManagerRosterResponseDto>>(json)?.Data;
+        }
+
+        var members = response?.Members ?? Array.Empty<FollowerManagerMemberDto>();
+        IReadOnlyList<FollowerSnapshotDto> followers = members
+            .Where(member => !string.IsNullOrWhiteSpace(member.Aid) && !string.IsNullOrWhiteSpace(member.Nickname))
+            .Select(member => new FollowerSnapshotDto(
+                member.Aid,
+                member.Nickname,
+                member.Side,
+                member.Level,
+                member.Experience,
+                new Dictionary<string, int>(StringComparer.Ordinal),
+                Array.Empty<string>(),
+                new Dictionary<string, int>(StringComparer.Ordinal),
+                new Dictionary<string, int>(StringComparer.Ordinal),
+                null))
+            .ToArray();
+
+        return Task.FromResult(followers);
     }
 
     public Task SaveRaidProgressAsync(FollowerRaidProgressPayload payload)
@@ -286,7 +317,19 @@ public sealed class FollowerApiClient : IFollowerApiClient
 }
 
 internal sealed record GetActiveFollowersResponseDto(IReadOnlyList<FollowerProfileSnapshotDto> Followers);
+internal sealed record GetFollowerManagerRosterResponseDto(IReadOnlyList<FollowerManagerMemberDto>? Members);
 internal sealed record WrappedResponseDto<T>(T? Data);
+
+internal sealed record FollowerManagerMemberDto(
+    string Aid,
+    string Nickname,
+    string Side,
+    bool AutoJoin,
+    string LoadoutMode,
+    string? AssignedEquipmentBuildName,
+    int Level,
+    int Experience,
+    bool HasStoredProfile);
 
 internal sealed record FollowerProfileSnapshotDto(
     string Aid,

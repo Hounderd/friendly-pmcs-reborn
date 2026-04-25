@@ -18,15 +18,29 @@ internal static class FollowerMainMenuRosterInjector
                 return;
             }
 
-            var anchorText = TryResolveProfileNameText(screen, profile)
-                ?? TryResolveButtonText(screen, "_playerButton");
-            var container = anchorText?.transform.parent;
-            if (container is null || anchorText is null)
+            var profileText = TryResolveProfileNameText(screen, profile);
+            var buttonText = TryResolveButtonText(screen, "_playerButton");
+            var anchorText = profileText ?? buttonText ?? TryResolveAnyMenuText(screen);
+            if (anchorText is null)
             {
+                logInfo?.Invoke("Follower main menu roster skipped: no text template found");
                 return;
             }
 
-            FollowerRosterUiInjector.TryInject(container, anchorText, followers, logInfo, "main-menu");
+            var container = profileText is not null || buttonText is not null
+                ? anchorText.transform.parent
+                : (screen as Component)?.transform ?? anchorText.transform.parent;
+            if (container is null)
+            {
+                logInfo?.Invoke("Follower main menu roster skipped: no UI container found");
+                return;
+            }
+
+            var injected = FollowerRosterUiInjector.TryInject(container, anchorText, followers, logInfo, "main-menu");
+            if (injected > 0 && container == (screen as Component)?.transform)
+            {
+                PositionRootLevelRoster(container);
+            }
         }
         catch (Exception ex)
         {
@@ -51,6 +65,33 @@ internal static class FollowerMainMenuRosterInjector
     {
         var button = AccessTools.Field(screen.GetType(), fieldName)?.GetValue(screen) as Component;
         return button?.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true);
+    }
+
+    private static TextMeshProUGUI? TryResolveAnyMenuText(object screen)
+    {
+        return (screen as Component)?
+            .GetComponentsInChildren<TextMeshProUGUI>(includeInactive: true)
+            .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text.text));
+    }
+
+    private static void PositionRootLevelRoster(Transform container)
+    {
+        var roster = container.Find("FriendlyFollowerRoster");
+        if (roster is null)
+        {
+            return;
+        }
+
+        var rect = roster.GetComponent<RectTransform>();
+        if (rect is null)
+        {
+            return;
+        }
+
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(0f, 0f);
+        rect.pivot = new Vector2(0f, 0f);
+        rect.anchoredPosition = new Vector2(265f, 112f);
     }
 }
 #else
