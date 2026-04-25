@@ -33,10 +33,10 @@ public static class CustomFollowerBrainPolicy
     {
         var combatPressureDistance = ResolveCombatPressureDistance(context);
         var shouldEscalateToCombat = context.HasActionableEnemy
-            && context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters;
+            && ShouldAllowFollowCombat(context, combatPressureDistance);
         var shouldMaintainCombat = context.CurrentMode == CustomFollowerBrainMode.CombatPursue
             && context.HasRecentCombatPressure
-            && context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters
+            && ShouldAllowFollowCombat(context, combatPressureDistance)
             && combatPressureDistance <= CombatPressureStickinessRangeMeters
             && (!context.IsInFollowCombatSuppressionCooldown
                 || combatPressureDistance <= FollowImmediateDefenseRangeMeters);
@@ -83,5 +83,20 @@ public static class CustomFollowerBrainPolicy
         }
 
         return goalEnemy;
+    }
+
+    private static bool ShouldAllowFollowCombat(CustomFollowerBrainContext context, float combatPressureDistance)
+    {
+        if (context.IsUnderFire)
+        {
+            return context.DistanceToPlayerMeters <= context.Settings.CombatMaxRangeMeters;
+        }
+
+        if (combatPressureDistance <= FollowImmediateDefenseRangeMeters)
+        {
+            return true;
+        }
+
+        return context.DistanceToPlayerMeters <= context.Settings.FollowLeashDistanceMeters;
     }
 }

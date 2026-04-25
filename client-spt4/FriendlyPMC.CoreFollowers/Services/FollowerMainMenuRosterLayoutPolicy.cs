@@ -10,9 +10,12 @@ public readonly record struct FollowerMainMenuRosterLayout(
     float PositionX,
     float PositionY);
 
+public readonly record struct FollowerMainMenuRosterPosition(float X, float Y);
+
 public static class FollowerMainMenuRosterLayoutPolicy
 {
     private const float LoadingRosterFontSize = 22f;
+    private const float VersionTextVerticalOffset = 32f;
 
     public static FollowerMainMenuRosterLayout Resolve()
     {
@@ -23,12 +26,19 @@ public static class FollowerMainMenuRosterLayoutPolicy
             AnchorMaxY: 0f,
             PivotX: 0f,
             PivotY: 0f,
-            PositionX: 108f,
-            PositionY: 66f);
+            PositionX: 0f,
+            PositionY: VersionTextVerticalOffset);
     }
 
     public static float ResolveFollowerFontSize(float templateFontSize)
     {
         return MathF.Min(templateFontSize, LoadingRosterFontSize);
+    }
+
+    public static FollowerMainMenuRosterPosition ResolvePositionFromVersionText(float versionTextX, float versionTextY)
+    {
+        return new FollowerMainMenuRosterPosition(
+            versionTextX,
+            versionTextY + VersionTextVerticalOffset);
     }
 }
