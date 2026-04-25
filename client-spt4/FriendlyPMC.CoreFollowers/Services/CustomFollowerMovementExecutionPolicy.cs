@@ -14,6 +14,7 @@ public static class CustomFollowerMovementExecutionPolicy
     private const float FormationSettleSlackMeters = 3.5f;
     private const float NearPlayerIdleBandMeters = 5f;
     private const float AlwaysSprintDistanceMeters = 30f;
+    private const float CloseRangeSprintSuppressionMeters = 22f;
 
     public static CustomFollowerMovementExecutionPlan Resolve(
         FollowerCommand command,
@@ -27,8 +28,7 @@ public static class CustomFollowerMovementExecutionPolicy
             CustomFollowerNavigationIntent.CatchUpToPlayer => new CustomFollowerMovementExecutionPlan(
                 ShouldMove: true,
                 MovementIntent: FollowerMovementIntent.CatchUpToPlayer,
-                ShouldSprint: distanceToPlayerMeters >= AlwaysSprintDistanceMeters
-                    || distanceToPlayerMeters >= settings.CatchUpDistanceMeters,
+                ShouldSprint: ShouldSprintToPlayer(distanceToPlayerMeters, settings),
                 ArrivalRadiusMeters: MathF.Max(settings.FollowDeadzoneMeters, 2.5f),
                 ForcePathRefresh: false),
             CustomFollowerNavigationIntent.ReturnToCombatRange => new CustomFollowerMovementExecutionPlan(
@@ -73,8 +73,7 @@ public static class CustomFollowerMovementExecutionPolicy
         return new CustomFollowerMovementExecutionPlan(
             ShouldMove: true,
             MovementIntent: FollowerMovementIntent.MoveToFormation,
-            ShouldSprint: distanceToPlayerMeters >= AlwaysSprintDistanceMeters
-                || distanceToPlayerMeters >= settings.CatchUpDistanceMeters,
+            ShouldSprint: ShouldSprintToPlayer(distanceToPlayerMeters, settings),
             ArrivalRadiusMeters: MathF.Max(settings.FollowDeadzoneMeters, 2.5f),
             ForcePathRefresh: false);
     }
@@ -83,6 +82,17 @@ public static class CustomFollowerMovementExecutionPolicy
     {
         var offset = FollowerOrderLayerPolicy.GetOffset(FollowerCommand.Follow, FollowerMovementIntent.MoveToFormation);
         return MathF.Sqrt((offset.X * offset.X) + (offset.Z * offset.Z));
+    }
+
+    private static bool ShouldSprintToPlayer(float distanceToPlayerMeters, FollowerModeSettings settings)
+    {
+        if (distanceToPlayerMeters < CloseRangeSprintSuppressionMeters)
+        {
+            return false;
+        }
+
+        return distanceToPlayerMeters >= AlwaysSprintDistanceMeters
+            || distanceToPlayerMeters >= settings.CatchUpDistanceMeters;
     }
 
     private static CustomFollowerMovementExecutionPlan ResolveRecovery(

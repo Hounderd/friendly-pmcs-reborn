@@ -9,8 +9,6 @@ public static class CustomFollowerPatrolSuppressionPolicy
             CustomFollowerBrainMode.FollowCatchUp or
             CustomFollowerBrainMode.HoldDefendLocal or
             CustomFollowerBrainMode.HoldReturnToAnchor or
-            CustomFollowerBrainMode.CombatPursue or
-            CustomFollowerBrainMode.CombatReturnToRange or
             CustomFollowerBrainMode.RecoverNavigation;
     }
 }

@@ -15,7 +15,8 @@ internal static class FollowerRosterUiInjector
         TextMeshProUGUI templateText,
         IEnumerable<FollowerSnapshotDto> followers,
         Action<string>? logInfo,
-        string context)
+        string context,
+        float? fontSizeOverride = null)
     {
         var lines = FollowerLoadingScreenRosterPolicy.BuildLines(followers);
         DestroyExisting(container);
@@ -46,10 +47,10 @@ internal static class FollowerRosterUiInjector
         fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        CreateHeader(root.transform, templateText);
+        CreateHeader(root.transform, templateText, fontSizeOverride);
         foreach (var line in lines)
         {
-            CreateLine(root.transform, templateText, line);
+            CreateLine(root.transform, templateText, line, fontSizeOverride);
         }
 
         logInfo?.Invoke($"Injected follower roster UI: context={context}, count={lines.Count}");
@@ -65,25 +66,32 @@ internal static class FollowerRosterUiInjector
         }
     }
 
-    private static void CreateHeader(Transform parent, TextMeshProUGUI templateText)
+    private static void CreateHeader(Transform parent, TextMeshProUGUI templateText, float? fontSizeOverride)
     {
         var headerObject = new GameObject("FriendlyFollowerRosterHeader", typeof(RectTransform), typeof(TextMeshProUGUI));
         headerObject.transform.SetParent(parent, worldPositionStays: false);
 
         var headerText = headerObject.GetComponent<TextMeshProUGUI>();
         CopyTextStyle(templateText, headerText);
-        headerText.fontSize = MathF.Max(10f, templateText.fontSize * 0.72f);
+        headerText.fontSize = fontSizeOverride.HasValue
+            ? MathF.Max(10f, fontSizeOverride.Value * 0.72f)
+            : MathF.Max(10f, templateText.fontSize * 0.72f);
         headerText.color = new Color32(111, 124, 113, 230);
         headerText.text = "FOLLOWERS";
     }
 
-    private static void CreateLine(Transform parent, TextMeshProUGUI templateText, string text)
+    private static void CreateLine(Transform parent, TextMeshProUGUI templateText, string text, float? fontSizeOverride)
     {
         var lineObject = new GameObject("FriendlyFollowerRosterLine", typeof(RectTransform), typeof(TextMeshProUGUI));
         lineObject.transform.SetParent(parent, worldPositionStays: false);
 
         var lineText = lineObject.GetComponent<TextMeshProUGUI>();
         CopyTextStyle(templateText, lineText);
+        if (fontSizeOverride.HasValue)
+        {
+            lineText.fontSize = fontSizeOverride.Value;
+        }
+
         lineText.color = new Color32(210, 210, 200, 255);
         lineText.richText = true;
         lineText.text = text;
@@ -109,7 +117,8 @@ internal static class FollowerRosterUiInjector
         object templateText,
         IEnumerable<FollowerSnapshotDto> followers,
         Action<string>? logInfo,
-        string context)
+        string context,
+        float? fontSizeOverride = null)
     {
         return 0;
     }
