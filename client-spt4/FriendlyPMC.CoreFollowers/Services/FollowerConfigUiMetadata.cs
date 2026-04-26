@@ -32,6 +32,7 @@ internal static class FollowerConfigUiMetadataCatalog
         new("Debug Followers", "Use Custom Brain", "9 Debug Followers", "Use Custom Brain", "Debug toggle that prefers the custom follower brain path when spawning debug followers.", 200, IsAdvanced: true),
         new("Debug Followers", "Fallback To Legacy Path", "9 Debug Followers", "Fallback To Legacy Path", "Debug toggle that allows falling back to the legacy debug follower control path.", 100, IsAdvanced: true),
 
+        new("Debug", "Enable Debug Follower Spawn", "10 Debug", "Enable Debug Follower Spawn", "Allows development-only local debug follower spawns. Leave disabled during normal play.", 400, IsAdvanced: true),
         new("Debug", "Spawn Debug Follower", "10 Debug", "Spawn Debug Follower", "One-shot debug flag that queues a local debug follower spawn.", 300, IsAdvanced: true),
         new("Debug", "Spawn Debug Follower Hotkey", "10 Debug", "Spawn Debug Follower Hotkey", "Hotkey used to request a local debug follower spawn.", 200, IsAdvanced: true),
         new("Debug", "Auto Smoke Follower Profile On Friend Hydrate", "10 Debug", "Auto Smoke Follower Profile On Friend Hydrate", "Debug probe that automatically opens one follower profile after the friends list hydrates.", 100, IsAdvanced: true),

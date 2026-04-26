@@ -25,6 +25,7 @@ public sealed class FollowerManagerSocialViewService(
     public async Task AppendRosterFriendsAsync(string sessionId, GetFriendListDataResponse friendList)
     {
         friendList.Friends ??= [];
+        var beforeCount = friendList.Friends.Count;
         AppendFriend(friendList.Friends, squadManagerChatBot.GetChatBot());
 
         var managedProfiles = await managerService.LoadRosterProfilesForManagementAsync(sessionId);
@@ -32,6 +33,9 @@ public sealed class FollowerManagerSocialViewService(
         {
             AppendFriend(friendList.Friends, CreateFriendEntry(profile));
         }
+
+        diagnosticsLog?.Append(
+            $"social-friends session={sessionId} before={beforeCount} managed={managedProfiles.Count} after={friendList.Friends.Count} followers=[{string.Join(", ", managedProfiles.Select(profile => profile.Nickname))}]");
     }
 
     public async Task<GetOtherProfileResponse?> TryBuildOtherProfileAsync(string sessionId, string accountId)

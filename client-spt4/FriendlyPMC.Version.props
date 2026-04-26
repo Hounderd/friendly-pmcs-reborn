@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
-    <FriendlyPmcVersion>0.1.176</FriendlyPmcVersion>
+    <FriendlyPmcVersion>0.1.177</FriendlyPmcVersion>
     <FriendlyPmcBuildVersionGeneratedFile>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\FriendlyPmcBuildVersion.g.cs</FriendlyPmcBuildVersionGeneratedFile>
   </PropertyGroup>
   <ItemGroup>

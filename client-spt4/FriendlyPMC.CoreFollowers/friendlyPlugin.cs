@@ -35,6 +35,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
     private ConfigEntry<bool>? followerPlateShowHealthNumber;
     private ConfigEntry<bool>? followerPlateShowFactionBadge;
     private ConfigEntry<float>? followerPlateVerticalOffset;
+    private ConfigEntry<bool>? enableDebugFollowerSpawn;
     private ConfigEntry<bool>? spawnDebugFollower;
     private ConfigEntry<KeyboardShortcut>? spawnDebugFollowerHotkey;
     private ConfigEntry<bool>? autoSmokeFollowerProfileOnFriendHydrate;
@@ -144,6 +145,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         followerPlateShowHealthNumber = Config.Bind("Follower Plates", "Show Health Number", false, Describe("Follower Plates", "Show Health Number"));
         followerPlateShowFactionBadge = Config.Bind("Follower Plates", "Show Faction Badge", true, Describe("Follower Plates", "Show Faction Badge"));
         followerPlateVerticalOffset = Config.Bind("Follower Plates", "Vertical Offset", FollowerPlateSettings.DefaultVerticalOffsetWorld, Describe("Follower Plates", "Vertical Offset"));
+        enableDebugFollowerSpawn = Config.Bind("Debug", "Enable Debug Follower Spawn", false, Describe("Debug", "Enable Debug Follower Spawn"));
         spawnDebugFollower = Config.Bind("Debug", "Spawn Debug Follower", false, Describe("Debug", "Spawn Debug Follower"));
         spawnDebugFollowerHotkey = Config.Bind("Debug", "Spawn Debug Follower Hotkey", new KeyboardShortcut(KeyCode.F9), Describe("Debug", "Spawn Debug Follower Hotkey"));
         autoSmokeFollowerProfileOnFriendHydrate = Config.Bind("Debug", "Auto Smoke Follower Profile On Friend Hydrate", false, Describe("Debug", "Auto Smoke Follower Profile On Friend Hydrate"));
@@ -223,6 +225,18 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
 
     private void TryQueueDebugSpawn()
     {
+        if (enableDebugFollowerSpawn?.Value != true)
+        {
+            if (spawnDebugFollower is { Value: true })
+            {
+                spawnDebugFollower.Value = false;
+                Config.Save();
+                Logger.LogInfo("Ignored debug follower spawn request because Enable Debug Follower Spawn is disabled");
+            }
+
+            return;
+        }
+
         var spawnRequested = false;
 
         if (spawnDebugFollower is { Value: true })
