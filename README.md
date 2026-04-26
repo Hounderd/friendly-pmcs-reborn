@@ -6,6 +6,32 @@ The mod lets you keep a roster of friendly PMCs, bring selected squadmates into 
 
 This is the public SPT 4.x rebuild of FriendlyPMC. It is not a drop-in continuation of the old codebase; the client and server pieces have been rebuilt around SPT 4.x, BigBrain movement layers, Messenger roster commands, voice/gesture-driven follower orders, and persistent follower data.
 
+## Screenshots
+
+### Follower Profile
+
+Follower profiles are exposed through Tarkov's social/profile UI and include the `OPEN INVENTORY` entry point.
+
+![Follower profile overview](assets/readme/friendlypmc-profile-overview.png)
+
+### Follower Inventory
+
+Follower inventory management shows equipped gear, carried containers, and movement targets for transferring or equipping items.
+
+![Follower inventory management](assets/readme/friendlypmc-inventory-management.png)
+
+### Squad List
+
+Managed followers appear in-game instead of being hidden as backend-only data.
+
+![Friendly PMC squad list](assets/readme/friendlypmc-squad-list.png)
+
+### Squad Manager
+
+The Squad Manager Messenger bot handles roster commands, autojoin settings, kit mode, saved equipment builds, and follower status.
+
+![Squad Manager chat commands](assets/readme/friendlypmc-squad-manager-chat.png)
+
 ## Requirements
 
 Install these before using the mod:
