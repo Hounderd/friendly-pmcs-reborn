@@ -197,7 +197,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         new HostileFootstepStimulusPatch().Enable();
         new HostileVoiceLineStimulusPatch().Enable();
         new FollowerLoadingScreenRosterPatch().Enable();
-        new FollowerMainMenuRosterPatch().Enable();
+        Logger.LogInfo("FriendlyPMC main menu follower roster disabled to avoid conflicting with the SPT squad interface");
         /*
         if (LootingLayerCompatibilityPatch.IsAvailable)
         {

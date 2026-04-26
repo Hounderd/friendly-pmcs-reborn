@@ -66,9 +66,10 @@ public sealed class FollowerCommandController
         {
             if (command == FollowerCommand.Loot)
             {
-                if (!registry.TryGetActiveOrder(follower.Aid, out _))
+                registry.SetActiveOrder(follower.Aid, FollowerCommand.Loot);
+                if (registry.TryGetCustomBrainSession(follower.Aid, out var session))
                 {
-                    registry.SetActiveOrder(follower.Aid, FollowerCommand.Follow);
+                    session.ApplyCommand(command, follower.CurrentPosition);
                 }
             }
             else if (command is not (FollowerCommand.Attention or FollowerCommand.Heal))

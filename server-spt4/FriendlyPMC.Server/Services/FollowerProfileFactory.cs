@@ -99,7 +99,6 @@ public sealed class FollowerProfileFactory
             ApplyCustomizationPart(snapshot.Appearance.Feet, value => generatedBot.Customization.Feet = value);
             ApplyCustomizationPart(snapshot.Appearance.Hands, value => generatedBot.Customization.Hands = value);
             ApplyCustomizationPart(snapshot.Appearance.Voice, value => generatedBot.Customization.Voice = value);
-            ApplyCustomizationPart(snapshot.Appearance.DogTag, value => generatedBot.Customization.DogTag = value);
         }
     }
 

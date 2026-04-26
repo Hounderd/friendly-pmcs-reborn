@@ -33,6 +33,15 @@ public static class SainFollowerExclusionPolicy
 
     private static bool ShouldAllowSainCombat(FollowerRegistry registry, string profileId)
     {
+        if (registry.TryGetActiveOrderByProfileId(profileId, out var activeOrder)
+            && activeOrder is FollowerCommand.Follow
+                or FollowerCommand.Regroup
+                or FollowerCommand.Combat
+                or FollowerCommand.TakeCover)
+        {
+            return true;
+        }
+
         if (registry.TryGetCustomBrainSessionByProfileId(profileId, out var customBrainSession))
         {
             return customBrainSession.CurrentDebugState.Mode is
@@ -40,7 +49,6 @@ public static class SainFollowerExclusionPolicy
                 CustomFollowerBrainMode.CombatReturnToRange;
         }
 
-        return registry.TryGetActiveOrderByProfileId(profileId, out var activeOrder)
-            && activeOrder is FollowerCommand.Combat or FollowerCommand.TakeCover;
+        return false;
     }
 }

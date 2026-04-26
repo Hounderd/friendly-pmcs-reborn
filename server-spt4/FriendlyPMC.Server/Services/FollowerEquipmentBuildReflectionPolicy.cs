@@ -77,11 +77,40 @@ public static class FollowerEquipmentBuildReflectionPolicy
 
     private static IEnumerable<object> ResolveEquipmentBuilds(object? fullProfile)
     {
-        var userBuilds = ReadValue(fullProfile, "userbuilds")
+        return ResolveEquipmentBuildContainers(fullProfile)
+            .SelectMany(AsObjectEnumerable)
+            .ToArray();
+    }
+
+    private static IEnumerable<object?> ResolveEquipmentBuildContainers(object? fullProfile)
+    {
+        var directUserBuilds = ReadValue(fullProfile, "userbuilds")
             ?? ReadValue(fullProfile, "UserBuilds");
-        var equipmentBuilds = ReadValue(userBuilds, "equipmentBuilds")
-            ?? ReadValue(userBuilds, "EquipmentBuilds");
-        return AsObjectEnumerable(equipmentBuilds);
+        var directEquipmentBuilds = ReadValue(directUserBuilds, "equipmentBuilds")
+            ?? ReadValue(directUserBuilds, "EquipmentBuilds");
+        if (directEquipmentBuilds is not null)
+        {
+            yield return directEquipmentBuilds;
+        }
+
+        var characters = ReadValue(fullProfile, "characters")
+            ?? ReadValue(fullProfile, "Characters");
+        var pmc = ReadValue(characters, "pmc")
+            ?? ReadValue(characters, "Pmc")
+            ?? ReadValue(characters, "PMC");
+        var nestedUserBuilds = ReadValue(pmc, "userbuilds")
+            ?? ReadValue(pmc, "UserBuilds");
+        var nestedEquipmentBuilds = ReadValue(nestedUserBuilds, "equipmentBuilds")
+            ?? ReadValue(nestedUserBuilds, "EquipmentBuilds");
+        if (nestedEquipmentBuilds is not null)
+        {
+            yield return nestedEquipmentBuilds;
+        }
+
+        foreach (var recursiveMatch in FindPropertiesByName(fullProfile, "equipmentBuilds"))
+        {
+            yield return recursiveMatch;
+        }
     }
 
     private static IEnumerable<object> ResolveBuildItems(object? build)
@@ -160,6 +189,11 @@ public static class FollowerEquipmentBuildReflectionPolicy
 
         if (instance is JsonElement json)
         {
+            if (json.ValueKind is not JsonValueKind.Object)
+            {
+                return null;
+            }
+
             foreach (var jsonProperty in json.EnumerateObject())
             {
                 if (string.Equals(jsonProperty.Name, memberName, StringComparison.OrdinalIgnoreCase))
@@ -180,6 +214,83 @@ public static class FollowerEquipmentBuildReflectionPolicy
 
         var field = type.GetField(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
         return field?.GetValue(instance);
+    }
+
+    private static IEnumerable<object?> FindPropertiesByName(object? instance, string memberName)
+    {
+        if (instance is null || instance is string)
+        {
+            yield break;
+        }
+
+        if (instance is JsonElement json)
+        {
+            foreach (var match in FindJsonPropertiesByName(json, memberName))
+            {
+                yield return match;
+            }
+
+            yield break;
+        }
+
+        if (instance is IDictionary dictionary)
+        {
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key is string key
+                    && string.Equals(key, memberName, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return entry.Value;
+                }
+
+                foreach (var nestedMatch in FindPropertiesByName(entry.Value, memberName))
+                {
+                    yield return nestedMatch;
+                }
+            }
+
+            yield break;
+        }
+
+        if (instance is IEnumerable enumerable)
+        {
+            foreach (var value in enumerable.Cast<object?>())
+            {
+                foreach (var nestedMatch in FindPropertiesByName(value, memberName))
+                {
+                    yield return nestedMatch;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<object?> FindJsonPropertiesByName(JsonElement json, string memberName)
+    {
+        if (json.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in json.EnumerateObject())
+            {
+                if (string.Equals(property.Name, memberName, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return property.Value;
+                }
+
+                foreach (var nestedMatch in FindJsonPropertiesByName(property.Value, memberName))
+                {
+                    yield return nestedMatch;
+                }
+            }
+        }
+        else if (json.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in json.EnumerateArray())
+            {
+                foreach (var nestedMatch in FindJsonPropertiesByName(element, memberName))
+                {
+                    yield return nestedMatch;
+                }
+            }
+        }
     }
 
     private static string? ReadStringValue(object? instance, string memberName)

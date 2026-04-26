@@ -137,6 +137,7 @@ public sealed class FollowerManagerService
 
         var side = ResolveDefaultSide(sessionId);
         var (seedLevel, seedExperience) = ResolveDefaultProfileSeed(sessionId);
+        var seedSkillProgress = ResolveDefaultSkillProgress(sessionId);
         var record = new FollowerRosterRecord(
             new MongoId().ToString(),
             resolvedNickname,
@@ -144,7 +145,10 @@ public sealed class FollowerManagerService
             AutoJoin: true,
             LoadoutMode: FollowerLoadoutModes.Persisted);
         roster.Add(record);
-        profiles.Add(profileFactory.CreateEmpty(record, seedLevel, seedExperience));
+        profiles.Add(profileFactory.CreateEmpty(record, seedLevel, seedExperience) with
+        {
+            SkillProgress = seedSkillProgress,
+        });
 
         await SaveNormalizedStateAsync(resolvedSessionId, roster, profiles);
 
@@ -270,6 +274,13 @@ public sealed class FollowerManagerService
         var existingProfile = profiles.FirstOrDefault(profile => string.Equals(profile.Aid, aid, StringComparison.Ordinal))
             ?? profileFactory.CreateEmpty(updatedMember);
         var updatedProfile = ApplyEquipmentSnapshotToProfile(updatedMember, existingProfile, equipmentSnapshot);
+        if (updatedProfile.SkillProgress.Count == 0)
+        {
+            updatedProfile = updatedProfile with
+            {
+                SkillProgress = ResolveDefaultSkillProgress(sessionId),
+            };
+        }
         ReplaceOrAddProfile(profiles, updatedProfile);
 
         await SaveNormalizedStateAsync(resolvedSessionId, roster, profiles);
@@ -369,30 +380,23 @@ public sealed class FollowerManagerService
             .ToDictionary(profile => profile.Aid, StringComparer.Ordinal);
 
         var rosterByAid = roster.ToDictionary(member => member.Aid, StringComparer.Ordinal);
-        var profilesToPersist = new List<FollowerProfileSnapshot>(incomingByAid.Values.Count);
+        var profilesToPersist = new List<FollowerProfileSnapshot>(Math.Max(incomingByAid.Values.Count, existingProfiles.Count));
         foreach (var incoming in incomingByAid.Values)
         {
-            if (deadSet.Contains(incoming.Aid))
-            {
-                continue;
-            }
-
             if (!rosterByAid.TryGetValue(incoming.Aid, out var member))
             {
                 continue;
             }
 
-            profilesToPersist.Add(BuildSavedRaidProfile(member, incoming, existingProfiles.GetValueOrDefault(incoming.Aid)));
+            var existing = existingProfiles.GetValueOrDefault(incoming.Aid);
+            profilesToPersist.Add(deadSet.Contains(incoming.Aid) && existing is not null
+                ? BuildResolvedProfile(member, existing)
+                : BuildSavedRaidProfile(member, incoming, existing));
         }
 
         foreach (var existing in existingProfiles.Values)
         {
             if (incomingByAid.ContainsKey(existing.Aid))
-            {
-                continue;
-            }
-
-            if (deadSet.Contains(existing.Aid))
             {
                 continue;
             }
@@ -405,9 +409,7 @@ public sealed class FollowerManagerService
             profilesToPersist.Add(BuildResolvedProfile(member, existing));
         }
 
-        var rosterToPersist = roster
-            .Where(member => !deadSet.Contains(member.Aid))
-            .ToArray();
+        var rosterToPersist = roster.ToArray();
 
         diagnosticsLog?.Append(
             $"raid-save requested={sessionId} resolved={resolvedSessionId} incoming={followers.Count} raidStart={raidStartSet.Count} spawned={spawnedSet.Count} dead={deadSet.Count} rosterBefore={roster.Count} rosterAfter={rosterToPersist.Length} profilesBefore={existingProfiles.Count} profilesAfter={profilesToPersist.Count}");
@@ -561,6 +563,22 @@ public sealed class FollowerManagerService
             0);
 
         return (level, experience);
+    }
+
+    private IReadOnlyDictionary<string, int> ResolveDefaultSkillProgress(string sessionId)
+    {
+        var commonSkills = profileHelper?.GetPmcProfile(new MongoId(sessionId))?.Skills?.Common;
+        if (commonSkills is null || !commonSkills.Any())
+        {
+            return new Dictionary<string, int>(StringComparer.Ordinal);
+        }
+
+        return commonSkills
+            .GroupBy(skill => skill.Id.ToString(), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => Math.Max((int)Math.Round(group.Last().Progress), 0),
+                StringComparer.Ordinal);
     }
 
     private static int? ReadIntProperty(object? target, string propertyName)

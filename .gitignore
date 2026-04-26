@@ -4,6 +4,7 @@ client-spt4/Directory.Build.props
 # Build artifacts
 **/bin/
 **/obj/
+dist/
 *.user
 *.suo
 *.log

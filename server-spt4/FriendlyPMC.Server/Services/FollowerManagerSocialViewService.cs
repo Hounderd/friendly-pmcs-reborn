@@ -30,11 +30,6 @@ public sealed class FollowerManagerSocialViewService(
         var managedProfiles = await managerService.LoadRosterProfilesForManagementAsync(sessionId);
         foreach (var profile in managedProfiles.OrderBy(member => member.Nickname, StringComparer.OrdinalIgnoreCase))
         {
-            if (profile.Equipment is null)
-            {
-                continue;
-            }
-
             AppendFriend(friendList.Friends, CreateFriendEntry(profile));
         }
     }
@@ -171,7 +166,16 @@ public sealed class FollowerManagerSocialViewService(
 
     private static FollowerInventorySnapshot? ResolveVisualizationInventory(FollowerProfileSnapshot profile)
     {
-        return profile.Inventory ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(profile.Equipment);
+        return profile.Inventory
+            ?? FollowerInventoryMigrationPolicy.CreateInventorySnapshot(profile.Equipment)
+            ?? CreateEmptyVisualizationInventory(profile);
+    }
+
+    private static FollowerInventorySnapshot CreateEmptyVisualizationInventory(FollowerProfileSnapshot profile)
+    {
+        return new FollowerInventorySnapshot(
+            $"{profile.Aid}equipment",
+            Array.Empty<FollowerInventoryItemSnapshot>());
     }
 
     private PlayerSocialProfileBaseline LoadPlayerBaseline(string sessionId)

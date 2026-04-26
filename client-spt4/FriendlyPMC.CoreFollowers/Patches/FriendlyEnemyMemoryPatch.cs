@@ -26,7 +26,7 @@ public sealed class FriendlyEnemyMemoryPatch : ModulePatch
         var targetProfileId = enemy?.ProfileId;
         var shouldProtect = Services.FollowerProtectionPolicy.ShouldProtectPlayer(
             botProfileId,
-            plugin.Registry.Followers.Select(follower => follower.Aid),
+            plugin.Registry.RuntimeFollowers.Select(follower => follower.RuntimeProfileId),
             localPlayer?.ProfileId,
             targetProfileId);
 
@@ -61,7 +61,7 @@ public sealed class FriendlyEnemyControllerPatch : ModulePatch
         var targetProfileId = player?.ProfileId;
         var shouldProtect = Services.FollowerProtectionPolicy.ShouldProtectPlayer(
             botProfileId,
-            plugin.Registry.Followers.Select(follower => follower.Aid),
+            plugin.Registry.RuntimeFollowers.Select(follower => follower.RuntimeProfileId),
             localPlayer?.ProfileId,
             targetProfileId);
 

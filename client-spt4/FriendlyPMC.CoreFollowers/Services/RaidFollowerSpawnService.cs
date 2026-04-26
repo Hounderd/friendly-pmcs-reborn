@@ -565,6 +565,26 @@ internal sealed class RaidFollowerSpawnService
                 enemyTypes.Add(wildSpawnType);
             }
         }
+
+        AddBossSquadEnemyTypes(enemyTypes);
+    }
+
+    private static void AddBossSquadEnemyTypes(ICollection<WildSpawnType> enemyTypes)
+    {
+        foreach (var wildSpawnType in Enum.GetValues(typeof(WildSpawnType)).Cast<WildSpawnType>())
+        {
+            var name = wildSpawnType.ToString();
+            if (!name.Contains("boss", StringComparison.OrdinalIgnoreCase)
+                && !name.StartsWith("follower", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!enemyTypes.Contains(wildSpawnType))
+            {
+                enemyTypes.Add(wildSpawnType);
+            }
+        }
     }
 
     private static List<BotOwner> GetActiveEnemies(BotSpawner botSpawner, BotOwner owner)

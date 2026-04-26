@@ -20,12 +20,6 @@ Follower inventory management shows equipped gear, carried containers, and movem
 
 ![Follower inventory management](assets/readme/friendlypmc-inventory-management.png)
 
-### Squad List
-
-Managed followers appear in-game instead of being hidden as backend-only data.
-
-![Friendly PMC squad list](assets/readme/friendlypmc-squad-list.png)
-
 ### Squad Manager
 
 The Squad Manager Messenger bot handles roster commands, autojoin settings, kit mode, saved equipment builds, and follower status.
@@ -127,6 +121,7 @@ Known rough edges:
 
 - Large AI mod stacks can still interfere with follower behavior.
 - Followers may occasionally stop responding if another behavior layer takes control.
+- The optional main-menu follower list is disabled for now because it can conflict with SPT's squad interface.
 - Inventory drag/drop and profile refresh behavior are still being polished.
 - Loot phrase commands require Looting Bots to be loaded.
 - The supported setup assumes BigBrain, Waypoints, SAIN, and Looting Bots are installed.

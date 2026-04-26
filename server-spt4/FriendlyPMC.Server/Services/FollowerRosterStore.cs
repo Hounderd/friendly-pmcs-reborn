@@ -53,9 +53,17 @@ public sealed class FollowerRosterStore
             return Array.Empty<FollowerRosterRecord>();
         }
 
-        await using var stream = File.OpenRead(path);
-        var roster = await JsonSerializer.DeserializeAsync<List<FollowerRosterRecord>>(stream, SerializerOptions);
-        return roster ?? new List<FollowerRosterRecord>();
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            var roster = await JsonSerializer.DeserializeAsync<List<FollowerRosterRecord>>(stream, SerializerOptions);
+            return roster ?? new List<FollowerRosterRecord>();
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        {
+            QuarantineUnreadableStoreFile(path);
+            return Array.Empty<FollowerRosterRecord>();
+        }
     }
 
     public async Task SaveRosterAsync(string sessionId, IReadOnlyList<FollowerRosterRecord> roster)
@@ -75,26 +83,52 @@ public sealed class FollowerRosterStore
             return Array.Empty<FollowerProfileSnapshot>();
         }
 
-        var json = await File.ReadAllTextAsync(path);
-        var profiles = JsonSerializer.Deserialize<List<FollowerProfileSnapshot>>(json, SerializerOptions)
-            ?? new List<FollowerProfileSnapshot>();
-        if (profiles.Any(profile => profile.Health?.Parts is null || profile.Health.Parts.Count == 0))
+        try
         {
-            var legacyProfiles = JsonSerializer.Deserialize<List<LegacyFollowerProfileSnapshot>>(json, SerializerOptions)
-                ?? new List<LegacyFollowerProfileSnapshot>();
-            if (legacyProfiles.Count == profiles.Count)
+            var json = await File.ReadAllTextAsync(path);
+            var profiles = JsonSerializer.Deserialize<List<FollowerProfileSnapshot>>(json, SerializerOptions)
+                ?? new List<FollowerProfileSnapshot>();
+            if (profiles.Any(profile => profile.Health?.Parts is null || profile.Health.Parts.Count == 0))
             {
-                profiles = profiles
-                    .Zip(legacyProfiles, UpgradeLegacyProfileIfNeeded)
-                    .ToList();
+                var legacyProfiles = JsonSerializer.Deserialize<List<LegacyFollowerProfileSnapshot>>(json, SerializerOptions)
+                    ?? new List<LegacyFollowerProfileSnapshot>();
+                if (legacyProfiles.Count == profiles.Count)
+                {
+                    profiles = profiles
+                        .Zip(legacyProfiles, UpgradeLegacyProfileIfNeeded)
+                        .ToList();
+                }
             }
+
+            profiles = profiles
+                .Select(FollowerInventoryMigrationPolicy.Upgrade)
+                .ToList();
+
+            return profiles;
         }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        {
+            QuarantineUnreadableStoreFile(path);
+            return Array.Empty<FollowerProfileSnapshot>();
+        }
+    }
 
-        profiles = profiles
-            .Select(FollowerInventoryMigrationPolicy.Upgrade)
-            .ToList();
+    private static void QuarantineUnreadableStoreFile(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return;
+            }
 
-        return profiles;
+            var backupPath = $"{path}.invalid-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+            File.Move(path, backupPath, overwrite: false);
+        }
+        catch
+        {
+            // Keep startup moving even if the backup cannot be created.
+        }
     }
 
     public async Task SaveProfilesAsync(string sessionId, IReadOnlyList<FollowerProfileSnapshot> profiles)

@@ -193,10 +193,10 @@ internal sealed class BotOwnerFollowerRuntimeHandle : IFollowerRuntimeHandle
 
         if (command == FollowerCommand.Loot)
         {
+            activeCommand = command;
             lastExplicitCommandTimeSeconds = UnityEngine.Time.time;
             nextOrderReviewTime = 0f;
             ApplyLoot();
-            ApplyCommand(GetEffectiveCommand() ?? FollowerCommand.Follow, isRefresh: true);
             return;
         }
 

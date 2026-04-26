@@ -31,8 +31,8 @@ public sealed class FriendlyPlayerHostilityPatch : ModulePatch
             .Where(member => member?.ProfileId is not null)
             .Select(member => member!.ProfileId)
             .ToArray();
-        var registeredFollowerProfileIds = plugin.Registry.Followers
-            .Select(follower => follower.Aid)
+        var registeredFollowerProfileIds = plugin.Registry.RuntimeFollowers
+            .Select(follower => follower.RuntimeProfileId)
             .ToArray();
 
         var decision = Services.FollowerAlliancePolicy.GetPlayerEnemyOverride(
