@@ -55,11 +55,18 @@ Server output:
 
 Client:
 
-- copy the built `FriendlyPMC.CoreFollowers` artifacts into `BepInEx/plugins/netstandard2.1`
+- copy the built `FriendlyPMC.CoreFollowers` artifacts into `BepInEx/plugins/FriendlyPMC.CoreFollowers`
 
 Server:
 
 - copy the built `FriendlyPMC.Server` output into `user/mods/FriendlyPMC.Server`
+
+Release ZIP layout:
+
+- `BepInEx/plugins/FriendlyPMC.CoreFollowers/FriendlyPMC.CoreFollowers.dll`
+- `BepInEx/plugins/FriendlyPMC.CoreFollowers/FriendlyPMC.CoreFollowers.deps.json`
+- `user/mods/FriendlyPMC.Server/FriendlyPMC.Server.dll`
+- `user/mods/FriendlyPMC.Server/FriendlyPMC.Server.deps.json`
 
 ## End-user reference
 
