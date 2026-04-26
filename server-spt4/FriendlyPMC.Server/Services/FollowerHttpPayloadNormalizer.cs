@@ -34,9 +34,10 @@ public static class FollowerHttpPayloadNormalizer
             JsonValueKind.Object => element.EnumerateObject()
                 .Select(property => new KeyValuePair<string, object?>(property.Name, NormalizeObjectProperty(path, property)))
                 .Where(entry => !ReferenceEquals(entry.Value, OmitProperty))
+                .GroupBy(entry => entry.Key, StringComparer.Ordinal)
                 .ToDictionary(
-                    entry => entry.Key,
-                    entry => entry.Value,
+                    group => group.Key,
+                    group => group.Last().Value,
                     StringComparer.Ordinal),
             JsonValueKind.Array => element.EnumerateArray()
                 .Select((child, index) => ConvertJsonElement(child, $"{path}[{index}]"))
