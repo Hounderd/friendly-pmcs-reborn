@@ -59,14 +59,14 @@ Client:
 
 Server:
 
-- copy the built `FriendlyPMC.Server` output into `user/mods/FriendlyPMC.Server`
+- copy the built `FriendlyPMC.Server` output into `SPT/user/mods/FriendlyPMC.Server`
 
 Release ZIP layout:
 
 - `BepInEx/plugins/FriendlyPMC.CoreFollowers/FriendlyPMC.CoreFollowers.dll`
 - `BepInEx/plugins/FriendlyPMC.CoreFollowers/FriendlyPMC.CoreFollowers.deps.json`
-- `user/mods/FriendlyPMC.Server/FriendlyPMC.Server.dll`
-- `user/mods/FriendlyPMC.Server/FriendlyPMC.Server.deps.json`
+- `SPT/user/mods/FriendlyPMC.Server/FriendlyPMC.Server.dll`
+- `SPT/user/mods/FriendlyPMC.Server/FriendlyPMC.Server.deps.json`
 
 ## End-user reference
 
