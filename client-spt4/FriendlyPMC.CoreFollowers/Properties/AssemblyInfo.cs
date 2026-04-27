@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyTitle("FriendlyPMC.CoreFollowers")]
-[assembly: AssemblyDescription("Core follower client logic for the SPT 4 FriendlyPMC rewrite")]
+[assembly: AssemblyTitle("PMCSquadmates.Client")]
+[assembly: AssemblyDescription("Client follower logic for PMC Squadmates on SPT 4")]
 [assembly: AssemblyVersion(FriendlyPMC.CoreFollowers.FriendlyPmcBuildVersion.AssemblyValue)]
 [assembly: AssemblyFileVersion(FriendlyPMC.CoreFollowers.FriendlyPmcBuildVersion.AssemblyValue)]
 [assembly: InternalsVisibleTo("FriendlyPMC.CoreFollowers.Tests")]

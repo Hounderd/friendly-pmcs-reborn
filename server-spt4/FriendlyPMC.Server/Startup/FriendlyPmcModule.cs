@@ -26,6 +26,6 @@ public sealed class FriendlyPmcModule(
             logger.Success($"Repaired player inventory ids for {repairedProfiles} loaded profile(s)");
         }
 
-        logger.Success("FriendlyPMC core follower services loaded");
+        logger.Success("PMC Squadmates services loaded");
     }
 }

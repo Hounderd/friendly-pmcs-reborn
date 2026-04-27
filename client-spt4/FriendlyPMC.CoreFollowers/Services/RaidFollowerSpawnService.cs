@@ -26,7 +26,7 @@ internal sealed class RaidFollowerSpawnService
     {
         if (FriendlyPmcCoreFollowersPlugin.Instance is not { } plugin)
         {
-            throw new InvalidOperationException("FriendlyPMC plugin instance is unavailable");
+            throw new InvalidOperationException("PMC Squadmates plugin instance is unavailable");
         }
 
         if (GamePlayerOwner.MyPlayer is not { } localPlayer)
@@ -170,7 +170,7 @@ internal sealed class RaidFollowerSpawnService
         };
 
         var plugin = FriendlyPmcCoreFollowersPlugin.Instance
-            ?? throw new InvalidOperationException("FriendlyPMC plugin instance is unavailable");
+            ?? throw new InvalidOperationException("PMC Squadmates plugin instance is unavailable");
 
         plugin.LogPluginInfo(
             $"Requesting persisted follower descriptor: nickname={snapshot.Nickname}, aid={snapshot.Aid}, side={localPlayer.Side}, followerCount={followerCount}");
@@ -307,7 +307,7 @@ internal sealed class RaidFollowerSpawnService
 
     private static string DumpDescriptorToFile(FollowerSnapshotDto snapshot, CompleteProfileDescriptorClass descriptor)
     {
-        var dumpDirectory = Path.Combine(BepInEx.Paths.BepInExRootPath, "plugins", "FriendlyPMC.CoreFollowers", "payload-dumps");
+        var dumpDirectory = Path.Combine(BepInEx.Paths.BepInExRootPath, "plugins", "PMCSquadmates.Client", "payload-dumps");
         Directory.CreateDirectory(dumpDirectory);
 
         var safeName = string.Concat(snapshot.Nickname.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));

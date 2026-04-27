@@ -15,47 +15,47 @@ public sealed class FollowerRoutes(JsonUtil jsonUtil, FollowerRouteCallbacks cal
     : StaticRouter(jsonUtil,
     [
         new RouteAction<EmptyRequestData>(
-            "/friendlypmc/corefollowers/active",
+            "/pmcsquadmates/active",
             async (url, info, sessionId, output) => await callbacks.GetActiveFollowersAsync(url, info, sessionId)
         ),
         new RouteAction<EmptyRequestData>(
-            "/friendlypmc/corefollowers/manager/roster",
+            "/pmcsquadmates/manager/roster",
             async (url, info, sessionId, output) => await callbacks.GetFollowerManagerRosterAsync(url, info, sessionId)
         ),
         new RouteAction<AddFollowerManagerMemberRequest>(
-            "/friendlypmc/corefollowers/manager/member/add",
+            "/pmcsquadmates/manager/member/add",
             async (url, info, sessionId, output) => await callbacks.AddFollowerManagerMemberAsync(url, info, sessionId)
         ),
         new RouteAction<RenameFollowerManagerMemberRequest>(
-            "/friendlypmc/corefollowers/manager/member/rename",
+            "/pmcsquadmates/manager/member/rename",
             async (url, info, sessionId, output) => await callbacks.RenameFollowerManagerMemberAsync(url, info, sessionId)
         ),
         new RouteAction<DeleteFollowerManagerMemberRequest>(
-            "/friendlypmc/corefollowers/manager/member/delete",
+            "/pmcsquadmates/manager/member/delete",
             async (url, info, sessionId, output) => await callbacks.DeleteFollowerManagerMemberAsync(url, info, sessionId)
         ),
         new RouteAction<SetFollowerManagerMemberAutoJoinRequest>(
-            "/friendlypmc/corefollowers/manager/member/autojoin",
+            "/pmcsquadmates/manager/member/autojoin",
             async (url, info, sessionId, output) => await callbacks.SetFollowerManagerMemberAutoJoinAsync(url, info, sessionId)
         ),
         new RouteAction<SetFollowerManagerMemberLoadoutModeRequest>(
-            "/friendlypmc/corefollowers/manager/member/loadout-mode",
+            "/pmcsquadmates/manager/member/loadout-mode",
             async (url, info, sessionId, output) => await callbacks.SetFollowerManagerMemberLoadoutModeAsync(url, info, sessionId)
         ),
         new RouteAction<GetFollowerInventoryRequest>(
-            "/friendlypmc/corefollowers/inventory/get",
+            "/pmcsquadmates/inventory/get",
             async (url, info, sessionId, output) => await callbacks.GetFollowerInventoryAsync(url, info, sessionId)
         ),
         new RouteAction<FollowerInventoryMoveRequest>(
-            "/friendlypmc/corefollowers/inventory/move",
+            "/pmcsquadmates/inventory/move",
             async (url, info, sessionId, output) => await callbacks.MoveFollowerInventoryAsync(url, info, sessionId)
         ),
         new RouteAction<RegisterFollowerRecruitRequest>(
-            "/friendlypmc/corefollowers/recruit",
+            "/pmcsquadmates/recruit",
             async (url, info, sessionId, output) => await callbacks.RegisterRecruitAsync(url, info, sessionId)
         ),
         new RouteAction<SaveFollowerRaidProgressRequest>(
-            "/friendlypmc/corefollowers/raid-progress",
+            "/pmcsquadmates/raid-progress",
             async (url, info, sessionId, output) => await callbacks.SaveRaidProgressAsync(url, info, sessionId)
         ),
         new RouteAction<GenerateFollowerBotsRequest>(
@@ -63,11 +63,11 @@ public sealed class FollowerRoutes(JsonUtil jsonUtil, FollowerRouteCallbacks cal
             async (url, info, sessionId, output) => await callbacks.GenerateFollowerBotsAsync(url, info, sessionId)
         ),
         new RouteAction<EmptyRequestData>(
-            "/friendlypmc/corefollowers/debug/followergenerate-payload/active",
+            "/pmcsquadmates/debug/followergenerate-payload/active",
             async (url, info, sessionId, output) => await callbacks.ProbeActiveFollowerGeneratePayloadAsync(url, info, sessionId)
         ),
         new RouteAction<ProbeFollowerGeneratePayloadRequest>(
-            "/friendlypmc/corefollowers/debug/followergenerate-payload",
+            "/pmcsquadmates/debug/followergenerate-payload",
             async (url, info, sessionId, output) => await callbacks.ProbeFollowerGeneratePayloadAsync(url, info, sessionId)
         )
     ])

@@ -32,7 +32,7 @@ public sealed class DebugFollowerBossSetupPatch : ModulePatch
             return true;
         }
 
-        plugin.LogPluginInfo($"Skipped native BotBoss.SetBoss for FriendlyPMC follower {ownerProfileId}");
+        plugin.LogPluginInfo($"Skipped native BotBoss.SetBoss for PMC Squadmates follower {ownerProfileId}");
         return false;
     }
 }

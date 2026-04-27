@@ -14,10 +14,14 @@ namespace FriendlyPMC.CoreFollowers;
 
 #if SPT_CLIENT
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+[BepInDependency("xyz.drakia.bigbrain")]
+[BepInDependency(WaypointsPluginDetectionPolicy.WaypointsPluginGuid)]
+[BepInDependency("me.sol.sain")]
+[BepInDependency(LootingBotsInteropBridge.LootingBotsPluginKey)]
 public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
 {
-    public const string PluginGuid = "xyz.pit.friendlypmc.corefollowers";
-    public const string PluginName = "FriendlyPMC.CoreFollowers";
+    public const string PluginGuid = "com.hounderd.pmcsquadmates.client";
+    public const string PluginName = "PMC Squadmates";
     public const string PluginVersion = FriendlyPmcBuildVersion.Value;
 
     private ConfigEntry<KeyboardShortcut>? healKey;
@@ -199,7 +203,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         new HostileFootstepStimulusPatch().Enable();
         new HostileVoiceLineStimulusPatch().Enable();
         new FollowerLoadingScreenRosterPatch().Enable();
-        Logger.LogInfo("FriendlyPMC main menu follower roster disabled to avoid conflicting with the SPT squad interface");
+        Logger.LogInfo("PMC Squadmates main menu follower roster disabled to avoid conflicting with the SPT squad interface");
         /*
         if (LootingLayerCompatibilityPatch.IsAvailable)
         {
@@ -210,7 +214,7 @@ public sealed class FriendlyPmcCoreFollowersPlugin : BaseUnityPlugin
         FriendlyFollowerBigBrainBootstrap.RegisterLayers(Logger.LogInfo);
         plateManager = gameObject.AddComponent<FollowerPlateManager>();
 
-        Logger.LogInfo("FriendlyPMC core follower plugin loaded");
+        Logger.LogInfo("PMC Squadmates client plugin loaded");
     }
 
     private void Update()

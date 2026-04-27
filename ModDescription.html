@@ -1,20 +1,20 @@
-**Friendly PMCs Reborn adds persistent PMC squadmates to SPT 4.x.**
+**PMC Squadmates adds persistent PMC squadmates to SPT 4.x.**
 
 Build a roster, bring selected followers into raids, use Tarkov's voice/gesture command system for basic follower orders, recruit compatible allies, and manage follower gear through Tarkov's social/profile screens.
 
-This is the public SPT 4.x rebuild of FriendlyPMC. It is developed around the modern BigBrain, Waypoints, SAIN, and Looting Bots AI stack.
+This is an independent SPT 4.x squadmate mod developed around the modern BigBrain, Waypoints, SAIN, and Looting Bots AI stack.
 
 **Follower profile integration**
 
-![Friendly PMCs Reborn follower profile overview](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-profile-overview.png)
+![PMC Squadmates follower profile overview](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-profile-overview.png)
 
 **Follower inventory management**
 
-![Friendly PMCs Reborn follower inventory management](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-inventory-management.png)
+![PMC Squadmates follower inventory management](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-inventory-management.png)
 
 **Squad Manager in Messenger**
 
-![Friendly PMCs Reborn Squad Manager messenger commands](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-squad-manager-chat.png)
+![PMC Squadmates Squad Manager messenger commands](https://raw.githubusercontent.com/Hounderd/friendly-pmcs-reborn/main/assets/readme/friendlypmc-squad-manager-chat.png)
 
 ## Requirements
 
@@ -26,9 +26,7 @@ Install these before using the mod:
 - **SAIN**
 - **Looting Bots**
 
-BigBrain is directly required by the client plugin. Waypoints, SAIN, and Looting Bots are part of the supported gameplay setup because this mod's follower movement, targeting protection, and looting compatibility are built around that stack.
-
-If you run a different AI setup, the mod may still load, but follower behavior is not the supported path.
+The client plugin declares these as BepInEx dependencies because follower movement, targeting protection, combat behavior, and looting support depend on them being loaded together.
 
 ## Install
 
@@ -38,16 +36,16 @@ Your main SPT folder is the folder that contains **EscapeFromTarkov.exe**, **Bep
 
 Expected final paths:
 
-- `BepInEx\plugins\FriendlyPMC.CoreFollowers\FriendlyPMC.CoreFollowers.dll`
-- `BepInEx\plugins\FriendlyPMC.CoreFollowers\FriendlyPMC.CoreFollowers.deps.json`
-- `SPT\user\mods\FriendlyPMC.Server\FriendlyPMC.Server.dll`
-- `SPT\user\mods\FriendlyPMC.Server\FriendlyPMC.Server.deps.json`
-- `SPT\user\mods\FriendlyPMC.Server\FriendlyPMC.Server.staticwebassets.endpoints.json`
+- `BepInEx\plugins\PMCSquadmates.Client\PMCSquadmates.Client.dll`
+- `BepInEx\plugins\PMCSquadmates.Client\PMCSquadmates.Client.deps.json`
+- `SPT\user\mods\PMCSquadmates.Server\PMCSquadmates.Server.dll`
+- `SPT\user\mods\PMCSquadmates.Server\PMCSquadmates.Server.deps.json`
+- `SPT\user\mods\PMCSquadmates.Server\PMCSquadmates.Server.staticwebassets.endpoints.json`
 
 Common install mistakes:
 
 - Do not install the server files into a top-level `user\mods` folder. For SPT 4.x, they belong under `SPT\user\mods`.
-- Do not leave the client plugin inside a loose `netstandard2.1` folder. Keep it under `BepInEx\plugins\FriendlyPMC.CoreFollowers`.
+- Do not leave the client plugin inside a loose `netstandard2.1` folder. Keep it under `BepInEx\plugins\PMCSquadmates.Client`.
 - The included `README.md` and `LICENSE` files can stay in the SPT root or be ignored. They are not loaded by SPT.
 
 ## Features
@@ -119,6 +117,6 @@ This is an active rebuild, not a finished squad AI overhaul.
 - The optional main-menu follower list is disabled for now because it can conflict with SPT's squad interface.
 - Loot phrase commands require Looting Bots to be loaded.
 - Inventory drag/drop and profile refresh behavior are still being polished.
-- The supported setup assumes BigBrain, Waypoints, SAIN, and Looting Bots are installed.
+- BigBrain, Waypoints, SAIN, and Looting Bots are required and must be loaded with the client plugin.
 
 When reporting behavior issues, include your SPT version, installed AI mods, whether the follower was fighting/looting/healing/stuck, and any relevant BepInEx or SPT server logs.

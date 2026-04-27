@@ -9,7 +9,7 @@ namespace FriendlyPMC.CoreFollowers.Services;
 
 internal static class LootingBotsInteropBridge
 {
-    private const string LootingBotsPluginKey = "me.skwizzy.lootingbots";
+    public const string LootingBotsPluginKey = "me.skwizzy.lootingbots";
     private const string ExternalTypeName = "LootingBots.External, skwizzy.LootingBots";
 
     private static bool loadedChecked;

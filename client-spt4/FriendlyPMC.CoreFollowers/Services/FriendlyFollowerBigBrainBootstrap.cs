@@ -22,7 +22,7 @@ internal static class FriendlyFollowerBigBrainBootstrap
             MovementLayerPriority);
 
         registered = true;
-        logInfo($"Registered FriendlyPMC BigBrain movement layer for: {string.Join(", ", supportedBrains)}");
+        logInfo($"Registered PMC Squadmates BigBrain movement layer for: {string.Join(", ", supportedBrains)}");
     }
 }
 #else

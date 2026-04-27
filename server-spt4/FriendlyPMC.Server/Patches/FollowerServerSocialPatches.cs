@@ -9,7 +9,7 @@ namespace FriendlyPMC.Server.Patches;
 
 public static class FollowerServerSocialPatches
 {
-    private const string HarmonyId = "xyz.pit.friendlypmc.server.social";
+    private const string HarmonyId = "com.hounderd.pmcsquadmates.server.social";
     private static bool applied;
 
     public static void Apply()

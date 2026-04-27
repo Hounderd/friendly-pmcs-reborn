@@ -31,12 +31,12 @@ public interface IRequestDispatcher
 
 public sealed class FollowerApiClient : IFollowerApiClient
 {
-    private const string ActiveFollowersRoute = "/friendlypmc/corefollowers/active";
-    private const string ManagerRosterRoute = "/friendlypmc/corefollowers/manager/roster";
-    private const string RegisterRecruitRoute = "/friendlypmc/corefollowers/recruit";
-    private const string SaveRaidProgressRoute = "/friendlypmc/corefollowers/raid-progress";
-    private const string GetFollowerInventoryRoute = "/friendlypmc/corefollowers/inventory/get";
-    private const string MoveFollowerInventoryRoute = "/friendlypmc/corefollowers/inventory/move";
+    private const string ActiveFollowersRoute = "/pmcsquadmates/active";
+    private const string ManagerRosterRoute = "/pmcsquadmates/manager/roster";
+    private const string RegisterRecruitRoute = "/pmcsquadmates/recruit";
+    private const string SaveRaidProgressRoute = "/pmcsquadmates/raid-progress";
+    private const string GetFollowerInventoryRoute = "/pmcsquadmates/inventory/get";
+    private const string MoveFollowerInventoryRoute = "/pmcsquadmates/inventory/move";
 
     private readonly IRequestDispatcher requestDispatcher;
 

@@ -1,10 +1,10 @@
-# Friendly PMCs Reborn
+# PMC Squadmates
 
-Friendly PMCs Reborn is an SPT 4.x mod that adds persistent PMC squadmates to single-player Tarkov.
+PMC Squadmates is an SPT 4.x mod that adds persistent PMC squadmates to single-player Tarkov.
 
 The mod lets you keep a roster of friendly PMCs, bring selected squadmates into raids, use Tarkov's voice/gesture command system for basic follower orders, recruit compatible allies, and manage follower gear through Tarkov's existing social/profile screens.
 
-This is the public SPT 4.x rebuild of FriendlyPMC. It is not a drop-in continuation of the old codebase; the client and server pieces have been rebuilt around SPT 4.x, BigBrain movement layers, Messenger roster commands, voice/gesture-driven follower orders, and persistent follower data.
+This is an independent SPT 4.x mod built around BigBrain movement layers, Messenger roster commands, voice/gesture-driven follower orders, and persistent follower data.
 
 ## Screenshots
 
@@ -36,9 +36,7 @@ Install these before using the mod:
 - SAIN
 - Looting Bots
 
-Friendly PMCs Reborn is developed and tested around that AI stack. BigBrain is directly referenced by the client plugin. Waypoints, SAIN, and Looting Bots are part of the supported gameplay setup because follower movement, targeting protection, and looting compatibility depend on them behaving predictably together.
-
-If you run a different AI stack, the mod may still load, but follower behavior is not the supported path.
+PMC Squadmates is developed and tested around that AI stack. The client plugin declares these as BepInEx dependencies because follower movement, targeting protection, combat behavior, and looting support depend on them being loaded together.
 
 ## Install
 
@@ -51,22 +49,22 @@ After extraction, the files should be in these locations:
 ```text
 BepInEx/
   plugins/
-    FriendlyPMC.CoreFollowers/
-      FriendlyPMC.CoreFollowers.dll
-      FriendlyPMC.CoreFollowers.deps.json
+    PMCSquadmates.Client/
+      PMCSquadmates.Client.dll
+      PMCSquadmates.Client.deps.json
 
 SPT/
   user/
     mods/
-      FriendlyPMC.Server/
-        FriendlyPMC.Server.dll
-        FriendlyPMC.Server.deps.json
-        FriendlyPMC.Server.staticwebassets.endpoints.json
+      PMCSquadmates.Server/
+        PMCSquadmates.Server.dll
+        PMCSquadmates.Server.deps.json
+        PMCSquadmates.Server.staticwebassets.endpoints.json
 ```
 
 Do not install the server mod into a top-level `user/mods` folder. For SPT 4.x, the server files belong under `SPT/user/mods`.
 
-Do not place the client DLL in a loose `netstandard2.1` folder. Keep the client plugin files together under `BepInEx/plugins/FriendlyPMC.CoreFollowers`.
+Do not place the client DLL in a loose `netstandard2.1` folder. Keep the client plugin files together under `BepInEx/plugins/PMCSquadmates.Client`.
 
 ## Basic Use
 
@@ -124,7 +122,7 @@ Known rough edges:
 - The optional main-menu follower list is disabled for now because it can conflict with SPT's squad interface.
 - Inventory drag/drop and profile refresh behavior are still being polished.
 - Loot phrase commands require Looting Bots to be loaded.
-- The supported setup assumes BigBrain, Waypoints, SAIN, and Looting Bots are installed.
+- BigBrain, Waypoints, SAIN, and Looting Bots are required and must be loaded with the client plugin.
 
 When reporting behavior issues, include your SPT version, installed AI mods, whether the follower was fighting/looting/healing/stuck, and any relevant BepInEx or SPT server logs.
 
@@ -169,10 +167,22 @@ Client output:
 client-spt4/FriendlyPMC.CoreFollowers/bin/Release/netstandard2.1
 ```
 
+Client assembly:
+
+```text
+PMCSquadmates.Client.dll
+```
+
 Server output:
 
 ```text
 server-spt4/FriendlyPMC.Server/bin/Release/FriendlyPMC.Server
+```
+
+Server assembly:
+
+```text
+PMCSquadmates.Server.dll
 ```
 
 ## License

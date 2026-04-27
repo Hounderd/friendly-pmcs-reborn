@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>FriendlyPMC.Server</RootNamespace>
-    <AssemblyName>FriendlyPMC.Server</AssemblyName>
+    <AssemblyName>PMCSquadmates.Server</AssemblyName>
     <OutputType>Library</OutputType>
     <Version>$(FriendlyPmcVersion)</Version>
     <OutputPath>bin\$(Configuration)\$(ProjectName)\$(AssemblyName)\</OutputPath>
