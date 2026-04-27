@@ -175,7 +175,26 @@ internal sealed class RaidFollowerSpawnService
         plugin.LogPluginInfo(
             $"Requesting persisted follower descriptor: nickname={snapshot.Nickname}, aid={snapshot.Aid}, side={localPlayer.Side}, followerCount={followerCount}");
 
-        var generatedProfiles = await profileEndpoint.method_3<CompleteProfileDescriptorClass[]>(request);
+        plugin.LogPluginInfo(
+            $"Persisted follower generation request summary: {BuildFollowerGenerateRequestSummary(request, conditions)}");
+
+        CompleteProfileDescriptorClass[]? generatedProfiles;
+        try
+        {
+            generatedProfiles = await profileEndpoint.method_3<CompleteProfileDescriptorClass[]>(request);
+        }
+        catch (Exception ex)
+        {
+            plugin.LogPluginError(
+                $"Persisted follower generation request failed before descriptor parse: nickname={snapshot.Nickname}, aid={snapshot.Aid}, {BuildFollowerGenerateRequestSummary(request, conditions)}",
+                ex);
+            throw new InvalidOperationException(
+                $"Backend follower generation failed for {snapshot.Nickname} ({snapshot.Aid}); check SPT server logs for /client/game/bot/followergenerate diagnostics.",
+                ex);
+        }
+
+        plugin.LogPluginInfo(
+            $"Persisted follower generation response received: nickname={snapshot.Nickname}, aid={snapshot.Aid}, count={generatedProfiles?.Length ?? -1}");
         var descriptor = generatedProfiles?.FirstOrDefault()
             ?? throw new InvalidOperationException($"Backend follower generation returned no profile for {snapshot.Aid}");
 
@@ -236,6 +255,53 @@ internal sealed class RaidFollowerSpawnService
             EPlayerSide.Bear => WildSpawnType.pmcBEAR,
             EPlayerSide.Usec => WildSpawnType.pmcUSEC,
             _ => WildSpawnType.assault,
+        };
+    }
+
+    private static string BuildFollowerGenerateRequestSummary(
+        LegacyParamsStruct request,
+        IReadOnlyList<WaveInfoClass> conditions)
+    {
+        var firstCondition = conditions.FirstOrDefault();
+        var firstConditionSummary = firstCondition is null
+            ? "<none>"
+            : string.Join(
+                ", ",
+                firstCondition
+                    .GetType()
+                    .GetProperties()
+                    .Where(property => property.GetIndexParameters().Length == 0)
+                    .Select(property => $"{property.Name}={FormatSummaryValue(property.GetValue(firstCondition))}")
+                    .Take(8));
+
+        var requestKeys = DescribeRequestParameterKeys(request.Params);
+
+        return $"url={request.Url}, retries={request.Retries}, paramKeys=[{requestKeys}], conditionCount={conditions.Count}, firstCondition=[{firstConditionSummary}]";
+    }
+
+    private static string DescribeRequestParameterKeys(object? parameters)
+    {
+        if (parameters is null)
+        {
+            return "<none>";
+        }
+
+        if (parameters is System.Collections.IDictionary dictionary)
+        {
+            return string.Join(", ", dictionary.Keys.Cast<object>().Select(key => key?.ToString() ?? "<null>"));
+        }
+
+        return parameters.GetType().Name;
+    }
+
+    private static string FormatSummaryValue(object? value)
+    {
+        return value switch
+        {
+            null => "<null>",
+            string text when text.Length > 80 => text[..80] + "...",
+            string text => text,
+            _ => value.ToString() ?? "<null>",
         };
     }
 

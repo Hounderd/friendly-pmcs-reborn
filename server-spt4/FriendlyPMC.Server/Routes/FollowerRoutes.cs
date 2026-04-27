@@ -192,10 +192,28 @@ public sealed class FollowerRouteCallbacks(
 
     public async ValueTask<string> GenerateFollowerBotsAsync(string url, GenerateFollowerBotsRequest request, MongoId sessionId)
     {
-        var generatedBots = await followerBotGenerationService.GenerateFollowerBotsAsync(sessionId, request);
-        var normalizedPayload = FollowerHttpPayloadNormalizer.Normalize(generatedBots, request.MemberId);
-        followerPayloadDumpService.CaptureFollowerGeneratePayload(sessionId.ToString(), request.MemberId, normalizedPayload);
-        return httpResponseUtil.GetBody(normalizedPayload);
+        logger.Info(
+            $"Follower generation request received: session={sessionId}, member={request.MemberId ?? "<null>"}, hasInfo={request.Info is not null}");
+
+        try
+        {
+            var generatedBots = (await followerBotGenerationService.GenerateFollowerBotsAsync(sessionId, request)).ToArray();
+            logger.Info(
+                $"Follower generation produced bots: session={sessionId}, member={request.MemberId ?? "<null>"}, count={generatedBots.Length}");
+
+            var normalizedPayload = FollowerHttpPayloadNormalizer.Normalize(generatedBots, request.MemberId);
+            followerPayloadDumpService.CaptureFollowerGeneratePayload(sessionId.ToString(), request.MemberId, normalizedPayload);
+            logger.Info(
+                $"Follower generation response normalized: session={sessionId}, member={request.MemberId ?? "<null>"}, payloadType={normalizedPayload?.GetType().Name ?? "<null>"}");
+
+            return httpResponseUtil.GetBody(normalizedPayload);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(
+                $"Follower generation failed: session={sessionId}, member={request.MemberId ?? "<null>"}, hasInfo={request.Info is not null}, error={ex}");
+            throw;
+        }
     }
 
     public async ValueTask<string> ProbeFollowerGeneratePayloadAsync(string url, ProbeFollowerGeneratePayloadRequest request, MongoId sessionId)

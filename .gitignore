@@ -33,6 +33,9 @@ client/
 server/
 resources/
 scripts/
+!scripts/
+scripts/*
+!scripts/package-spt4-release.ps1
 reflect_local.ps1
 reflect_remote.ps1
 
