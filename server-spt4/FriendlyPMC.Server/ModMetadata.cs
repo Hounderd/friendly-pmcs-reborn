@@ -12,7 +12,7 @@ public sealed record ModMetadata : AbstractModMetadata
     public override SemanticVersioning.Range SptVersion { get; init; } = new("~4.0.0");
     public override List<string>? Incompatibilities { get; init; }
     public override Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; }
-    public override string? Url { get; init; } = "https://github.com/Hounderd/friendly-pmcs-reborn";
+    public override string? Url { get; init; } = "https://github.com/Hounderd/pmc-squadmates";
     public override bool? IsBundleMod { get; init; }
     public override string License { get; init; } = "MIT";
 }
